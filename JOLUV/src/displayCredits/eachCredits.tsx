@@ -22,7 +22,7 @@ function EachCredits({ data }: CreditProgressProps) {
             </h2>
 
             <div className="flex justify-center text-4xl font-medium pt-3">
-                 <span className="text-blue-600 font-bold">{MajorCredits}학점</span>
+                 <span className="text-pink-400 font-bold">{MajorCredits}학점</span>
             </div>
         </div>
         
@@ -34,7 +34,7 @@ function EachCredits({ data }: CreditProgressProps) {
             </h2>
 
             <div className="flex justify-center text-4xl font-medium pt-3">
-                <span className="text-blue-600 font-bold">{CultureCredits}학점</span>
+                <span className="text-pink-400 font-bold">{CultureCredits}학점</span>
             </div>
         </div>
     </div>
