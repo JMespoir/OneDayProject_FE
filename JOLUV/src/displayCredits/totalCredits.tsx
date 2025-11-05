@@ -1,4 +1,3 @@
-import React from 'react';
 
 
 import type { graduacteCradits } from '../types/totalCredits';
@@ -30,7 +29,7 @@ function TotalCredits({ data }: CreditProgressProps) {
 
       {/* 학점 정보 표시 (credit-info) */}
       <div className="flex justify-center text-xl font-medium space-x-1">
-        <span className="text-blue-600 font-bold">{completedCredits}학점</span>
+        <span className="text-pink-400 font-bold">{completedCredits}학점</span>
         <span className="text-gray-500"> / </span>
         <span className="text-gray-800">{totalCredits}학점</span>
       </div>
@@ -39,7 +38,7 @@ function TotalCredits({ data }: CreditProgressProps) {
       <div className="w-full bg-gray-200 rounded-full h-3">
         <div
           // progress-bar-fill
-          className="h-3 rounded-full bg-blue-500 transition-all duration-500 ease-in-out"
+          className="h-3 rounded-full bg-pink-400 transition-all duration-500 ease-in-out"
           style={{ width: `${progressBarWidth}%` }}
           // 접근성을 위한 속성
           aria-valuenow={completedCredits}
