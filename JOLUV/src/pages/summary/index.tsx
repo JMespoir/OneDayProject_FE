@@ -29,27 +29,41 @@ const SAMPLE_COURSES: Course[] = [
   { id: 12, name: '인공지능', credits: 3, category: '전공선택', grade: 3, semester: 1, score: 'A+' },
 ];
 
+const ITEMS_PER_PAGE = 10;
+
 const SummaryPage: React.FC = () => {
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   
+  // 필터 상태
   const [selectedGrade, setSelectedGrade] = useState('all');    
   const [selectedSemester, setSelectedSemester] = useState('all'); 
   const [searchTerm, setSearchTerm] = useState('');
   
   const [searchResults, setSearchResults] = useState<Course[]>([]);
+  
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchAllCourses = async () => {
       try {
-        const initializedCourses = SAMPLE_COURSES.map(c => ({ ...c, score: 'A+' }));
+        // 백엔드 연결 시도 (실패 시 샘플 데이터 사용)
+        // const response = await axios.get('/api/api/v1/courses/all');
+        // const initialized = response.data.map((c: any) => ({ ...c, score: 'A+', isAdded: false }));
+        // setAllCourses(initialized);
+        
+        const initializedCourses = SAMPLE_COURSES.map(c => ({ ...c, score: 'A+', isAdded: false }));
         setAllCourses(initializedCourses);
       } catch (error) {
         console.error('데이터 로드 실패:', error);
+        const initializedCourses = SAMPLE_COURSES.map(c => ({ ...c, score: 'A+', isAdded: false }));
+        setAllCourses(initializedCourses);
       }
     };
     fetchAllCourses();
   }, []);
 
+  // 필터링 로직
   useEffect(() => {
     let filtered = allCourses;
 
@@ -68,8 +82,10 @@ const SummaryPage: React.FC = () => {
     }
 
     setSearchResults(filtered);
+    setCurrentPage(1); // 필터 변경 시 1페이지로 이동
   }, [selectedGrade, selectedSemester, searchTerm, allCourses]);
 
+  // 핸들러 함수들
   const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newGrade = e.target.value;
     setSelectedGrade(newGrade);
@@ -77,17 +93,15 @@ const SummaryPage: React.FC = () => {
   };
 
   const handleCategoryChange = (id: number, newCategory: string) => {
-    const updateCourse = (list: Course[]) => list.map(course => 
+    setAllCourses(prev => prev.map(course => 
       course.id === id ? { ...course, category: newCategory } : course
-    );
-    setAllCourses(prev => updateCourse(prev));
+    ));
   };
 
   const handleScoreChange = (id: number, newScore: string) => {
-    const updateCourse = (list: Course[]) => list.map(course => 
+    setAllCourses(prev => prev.map(course => 
       course.id === id ? { ...course, score: newScore } : course
-    );
-    setAllCourses(prev => updateCourse(prev));
+    ));
   };
 
   const handleAddMyCourse = (id: number) => {
@@ -102,12 +116,21 @@ const SummaryPage: React.FC = () => {
     ));
   };
 
+  // 내가 수강한 과목 리스트
   const myAddedCourses = allCourses.filter(course => course.isAdded);
+
+  // 페이지네이션 계산
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentItems = searchResults.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(searchResults.length / ITEMS_PER_PAGE);
+  const emptyRows = ITEMS_PER_PAGE - currentItems.length;
 
   return (
     <div className="bg-gray-100 min-h-screen p-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">학점 관리</h1>
 
+      {/* 상단 요약 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="md:col-span-2 lg:col-span-2">
           <TotalCredits total={120} completed={90} percentage={75.0} />
@@ -123,6 +146,7 @@ const SummaryPage: React.FC = () => {
       <div className="bg-white p-6 rounded-xl shadow-md mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">이수 과목 정리</h2>
         
+        {/* 필터 섹션 */}
         <div className="flex flex-wrap gap-4 mb-6 items-end">
           <div className="w-40">
             <label className="block text-sm font-medium text-gray-700 mb-1">학년</label>
@@ -169,7 +193,7 @@ const SummaryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 내가 수강한 과목 */}
+        {/* 내가 수강한 과목 리스트 (상단) */}
         {myAddedCourses.length > 0 && (
           <div className="mb-8 border-2 border-pink-100 bg-pink-50 rounded-xl p-4">
             <div className="flex justify-between items-center mb-4 px-2">
@@ -185,11 +209,11 @@ const SummaryPage: React.FC = () => {
               <table className="min-w-full divide-y divide-pink-100">
                 <thead className="bg-pink-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase">과목명</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase">이수구분</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase">학점</th>
-                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase">성적</th>
-                    <th className="px-6 py-3 text-center text-xs font-bold text-pink-800 uppercase">관리</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase w-1/5">과목명</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase w-1/5">이수구분</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase w-1/5">학점</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-pink-800 uppercase w-1/5">성적</th>
+                    <th className="px-6 py-3 text-center text-xs font-bold text-pink-800 uppercase w-1/5">관리</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-pink-100">
@@ -198,8 +222,7 @@ const SummaryPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                         {course.name}
                       </td>
-                      
-                      {/* 👇 이수구분 변경 가능하도록 수정됨 */}
+                      {/* 이수구분 수정 가능 */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
                           value={course.category}
@@ -214,15 +237,12 @@ const SummaryPage: React.FC = () => {
                           <option>일반선택</option>
                         </select>
                       </td>
-
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
                         {course.credits}학점
                       </td>
-                      
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-bold">
                         {course.score}
                       </td>
-                      
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <button 
                           onClick={() => handleRemoveMyCourse(course.id)}
@@ -239,99 +259,104 @@ const SummaryPage: React.FC = () => {
           </div>
         )}
 
-        {/* 조회 결과 리스트 */}
+        {/* 조회 결과 리스트 (하단) */}
         <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
           <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 font-bold text-gray-700 flex justify-between items-center">
             <span>조회 결과 ({searchResults.length}건)</span>
           </div>
           
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-            <table className="min-w-full divide-y divide-gray-200 relative">
-              <thead className="bg-gray-50 sticky top-0 z-10">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">학년/학기</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">과목명</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이수구분</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">학점</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">성적</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">관리</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/6">학년/학기</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/6">과목명</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/6">이수구분</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/6">학점</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-1/6">성적</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase w-1/6">관리</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {searchResults.length > 0 ? (
-                  searchResults.map((course) => (
-                    <tr key={course.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {course.grade}학년 {course.semester}학기
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        {course.name}
-                      </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={course.category}
-                          onChange={(e) => handleCategoryChange(course.id, e.target.value)}
-                          className="text-sm border border-gray-300 rounded p-1 focus:ring-pink-400 focus:border-pink-400"
-                        >
-                          <option>전공필수</option>
-                          <option>전공선택</option>
-                          <option>전공기초</option>
-                          <option>교양필수</option>
-                          <option>교양선택</option>
-                          <option>일반선택</option>
-                        </select>
-                      </td>
+                {/* 데이터 행 */}
+                {currentItems.map((course) => (
+                  <tr key={course.id} className="hover:bg-gray-50 h-16 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {course.grade}학년 {course.semester}학기
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                      {course.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={course.category}
+                        onChange={(e) => handleCategoryChange(course.id, e.target.value)}
+                        className="text-sm border border-gray-300 rounded p-1 focus:ring-pink-400 focus:border-pink-400"
+                      >
+                        <option>전공필수</option>
+                        <option>전공선택</option>
+                        <option>전공기초</option>
+                        <option>교양필수</option>
+                        <option>교양선택</option>
+                        <option>일반선택</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="number"
+                        value={course.credits}
+                        disabled
+                        className="w-16 text-sm border border-pink-200 rounded p-1 bg-pink-50 text-pink-600 font-medium text-center cursor-not-allowed"
+                      />
+                      <span className="ml-1 text-sm text-gray-500">학점</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={course.score || 'A+'}
+                        onChange={(e) => handleScoreChange(course.id, e.target.value)}
+                        className="text-sm border border-gray-300 rounded p-1 focus:ring-pink-400 focus:border-pink-400 font-medium text-gray-700"
+                      >
+                        <option>A+</option>
+                        <option>A0</option>
+                        <option>B+</option>
+                        <option>B0</option>
+                        <option>C+</option>
+                        <option>C0</option>
+                        <option>D+</option>
+                        <option>D0</option>
+                        <option>F</option>
+                        <option>P</option>
+                        <option>NP</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        onClick={() => handleAddMyCourse(course.id)}
+                        disabled={course.isAdded}
+                        className={`
+                          px-4 py-1.5 rounded text-sm font-medium transition-all duration-200
+                          ${course.isAdded 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : 'bg-pink-400 text-white hover:bg-pink-500 shadow-sm hover:shadow'}
+                        `}
+                      >
+                        {course.isAdded ? '추가 완료' : '추가'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
 
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="number"
-                          value={course.credits}
-                          disabled
-                          className="w-16 text-sm border border-pink-200 rounded p-1 bg-pink-50 text-pink-600 font-medium text-center cursor-not-allowed"
-                        />
-                        <span className="ml-1 text-sm text-gray-500">학점</span>
-                      </td>
+                {/* 빈 행 채우기 (높이 고정) */}
+                {Array.from({ length: emptyRows }).map((_, index) => (
+                  <tr key={`empty-${index}`} className="h-16 border-b border-gray-50">
+                    <td colSpan={6}></td>
+                  </tr>
+                ))}
 
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={course.score || 'A+'}
-                          onChange={(e) => handleScoreChange(course.id, e.target.value)}
-                          className="text-sm border border-gray-300 rounded p-1 focus:ring-pink-400 focus:border-pink-400 font-medium text-gray-700"
-                        >
-                          <option>A+</option>
-                          <option>A0</option>
-                          <option>B+</option>
-                          <option>B0</option>
-                          <option>C+</option>
-                          <option>C0</option>
-                          <option>D+</option>
-                          <option>D0</option>
-                          <option>F</option>
-                          <option>P</option>
-                          <option>NP</option>
-                        </select>
-                      </td>
-                      
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => handleAddMyCourse(course.id)}
-                          disabled={course.isAdded}
-                          className={`
-                            px-4 py-1.5 rounded text-sm font-medium transition-all duration-200
-                            ${course.isAdded 
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                              : 'bg-pink-400 text-white hover:bg-pink-500 shadow-sm hover:shadow'}
-                          `}
-                        >
-                          {course.isAdded ? '추가 완료' : '추가'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+                {/* 데이터 없을 때 메시지 */}
+                {searchResults.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500 h-64">
                       조건에 맞는 개설 강좌가 없습니다.
                     </td>
                   </tr>
@@ -339,6 +364,41 @@ const SummaryPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* 페이지네이션 컨트롤 */}
+          {searchResults.length > 0 && (
+            <div className="flex justify-center items-center p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 mx-1 rounded bg-white border border-gray-300 text-gray-600 disabled:opacity-50 hover:bg-gray-100"
+              >
+                &lt;
+              </button>
+              
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-1 mx-1 rounded border ${
+                    currentPage === i + 1 
+                      ? 'bg-pink-400 text-white border-pink-400' 
+                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 mx-1 rounded bg-white border border-gray-300 text-gray-600 disabled:opacity-50 hover:bg-gray-100"
+              >
+                &gt;
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
