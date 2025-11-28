@@ -1,3 +1,5 @@
+/* ... (기존 스타일 유지) ... */
+
 /* 전체 레이아웃 */
 .mypage__layout {
   display: flex;
@@ -67,6 +69,7 @@
 .mypage__track-section h2,
 .mypage__score h2,
 .mypage__internship h2,
+.mypage__gpa h2,
 .career__section h2 {
   font-size: 1.25rem;
   font-weight: 700;
@@ -105,15 +108,14 @@
   min-width: 50px;
 }
 
-/* ⭐️ 고정된 트랙 텍스트 스타일 (수정됨) */
 .track__fixed-value {
   padding: 8px 16px;
-  background-color: #fce7f3; /* 💖 연한 핑크 배경 (Pink-100) */
-  color: #000000; /* 🖤 검은색 글씨 */
+  background-color: #fce7f3; /* 💖 Pink-100 */
+  color: #000000; /* 🖤 */
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.95rem;
-  border: 1px solid #fbcfe8; /* 💖 핑크색 테두리 (Pink-200) */
+  border: 1px solid #fbcfe8; /* 💖 Pink-200 */
   flex: 1;
   text-align: center;
   max-width: 250px;
@@ -157,6 +159,7 @@
   color: #64748b;
 }
 
+/* 체크박스 스타일 */
 .score__checkbox-row {
   display: flex;
   align-items: center;
@@ -182,7 +185,7 @@
 .checkbox-input {
   width: 18px;
   height: 18px;
-  accent-color: black; /* 검은색 체크박스 */
+  accent-color: black;
   cursor: pointer;
 }
 
@@ -192,6 +195,7 @@
   font-weight: 500;
 }
 
+/* 버튼 스타일 */
 .score__save-btn {
   background-color: #f472b6; 
   color: white;
@@ -216,6 +220,59 @@
 
 .score__save-btn.secondary:hover {
   background-color: #ec4899;
+}
+
+/* 학점 관리 섹션 스타일 */
+.gpa__container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 10px;
+}
+
+.gpa__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gpa__divider {
+  width: 1px;
+  height: 50px;
+  background-color: #e2e8f0;
+  margin: 0 20px;
+}
+
+.gpa__label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.gpa__value-wrapper {
+  display: flex;
+  align-items: baseline;
+}
+
+.gpa__value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.gpa__value.highlight {
+  color: #f472b6;
+}
+
+.gpa__max {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-left: 2px;
+  font-weight: 500;
 }
 
 /* 경력 섹션 */
@@ -333,4 +390,39 @@
 
 .career__form button:hover {
   background-color: #ec4899;
+}
+
+/* ⭐️ Toast Notification Style (새로 추가됨) */
+.toast-notification {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 0.95rem;
+  font-weight: 500;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+
+.toast-icon {
+  font-size: 1.2rem;
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }

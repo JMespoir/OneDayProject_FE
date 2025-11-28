@@ -12,6 +12,8 @@ interface UserInfo {
   profileImage?: string;
   studentId?: string; 
   eng_score?: number; 
+  totalGpa?: number;
+  majorGpa?: number;
   internship?: boolean;
 }
 
@@ -36,6 +38,18 @@ const MyPage: React.FC = () => {
   const [engScoreInput, setEngScoreInput] = useState<string>('');
   const [internshipChecked, setInternshipChecked] = useState<boolean>(false);
   const [selectedTrack, setSelectedTrack] = useState<string>('');
+
+  // ⭐️ 토스트 메시지 상태
+  const [toast, setToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+
+  // ⭐️ 토스트 메시지 출력 함수
+  const showToastMessage = (message: string) => {
+    setToast({ show: true, message });
+    // 3초 뒤에 사라짐
+    setTimeout(() => {
+      setToast({ show: false, message: '' });
+    }, 3000);
+  };
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -76,6 +90,8 @@ const MyPage: React.FC = () => {
                 major: major,
                 track: track, 
                 eng_score: score,
+                totalGpa: 0.0, 
+                majorGpa: 0.0,
                 internship: isInternship,
                 profileImage: ''
             });
@@ -87,6 +103,8 @@ const MyPage: React.FC = () => {
             const score = response.data.eng_score || 0;
             const isInternship = response.data.internship || false;
             const track = response.data.track || '다중전공트랙';
+            const totalGpa = response.data.total_gpa || 0.0;
+            const majorGpa = response.data.major_gpa || 0.0;
 
             setUser({
                 name: response.data.name || '이름 없음',
@@ -95,6 +113,8 @@ const MyPage: React.FC = () => {
                 major: response.data.major || '컴퓨터학부 SW글로벌 융합전공',
                 track: track,
                 eng_score: score,
+                totalGpa: totalGpa,
+                majorGpa: majorGpa,
                 internship: isInternship,
                 profileImage: ''
             });
@@ -112,6 +132,8 @@ const MyPage: React.FC = () => {
           major: '글로벌소프트웨어융합전공', 
           track: '다중전공트랙',
           eng_score: 0,
+          totalGpa: 0.0,
+          majorGpa: 0.0,
           internship: false,
         });
         setEngScoreInput('0');
@@ -164,7 +186,9 @@ const MyPage: React.FC = () => {
         });
 
         if (response.status === 200) {
-            alert('정보가 저장되었습니다.');
+            // ⭐️ alert 대신 토스트 메시지 호출
+            showToastMessage('성공적으로 저장되었습니다! 🎉');
+            
             setUser({ 
                 ...user, 
                 track: selectedTrack,
@@ -174,18 +198,15 @@ const MyPage: React.FC = () => {
         }
     } catch (error) {
         console.error('정보 수정 실패:', error);
-        alert('정보 수정 중 오류가 발생했습니다.');
+        showToastMessage('저장 중 오류가 발생했습니다.'); // 에러 시에도 토스트 사용 가능
     }
   };
 
-  // ⭐️ [신규 로직] 트랙 선택이 불필요한(고정된) 전공인지 확인
   const isFixedTrack = () => {
     if (!user) return false;
-    const majorName = user.major.replace(/\s+/g, '');
-    return majorName.includes('심화컴퓨팅전공') || majorName.includes('인공지능컴퓨팅전공');
+    return false; // 심화/인공지능도 선택 가능하게 변경됨
   };
 
-  // 전공에 따른 트랙 옵션 렌더링 (Global SW 등 선택 가능한 경우에만 사용)
   const renderTrackOptions = () => {
     if (!user) return <option disabled>로딩 중...</option>;
     const majorName = user.major.replace(/\s+/g, '');
@@ -199,7 +220,22 @@ const MyPage: React.FC = () => {
             </>
         );
     }
-    // 그 외 (기본)
+    else if (majorName.includes('심화컴퓨팅전공')) {
+        return (
+            <>
+                <option value="심화컴퓨팅전공트랙">심화컴퓨팅전공트랙</option>
+                <option value="다중전공트랙">다중전공트랙</option>
+            </>
+        );
+    }
+    else if (majorName.includes('인공지능컴퓨팅전공')) {
+        return (
+            <>
+                <option value="인공지능트랙">인공지능트랙</option>
+                <option value="다중전공트랙">다중전공트랙</option>
+            </>
+        );
+    }
     return (
         <>
             <option value="일반과정">일반과정</option>
@@ -210,6 +246,15 @@ const MyPage: React.FC = () => {
 
   return (
     <div className="mypage__layout">
+      {/* ⭐️ 토스트 메시지 렌더링 */}
+      {toast.show && (
+        <div className="toast-notification">
+            <span className="toast-icon">✅</span>
+            {toast.message}
+        </div>
+      )}
+
+      {/* 왼쪽 영역 */}
       <div className="mypage__container box__left">
         <header className="mypage__header">
           <div className="profile__img" />
@@ -224,14 +269,13 @@ const MyPage: React.FC = () => {
           </div>
         </header>
 
-        {/* 1. 세부 트랙 관리 섹션 */}
+        {/* 세부 트랙 정보 */}
         <section className="mypage__track-section">
           <h2>세부 트랙 정보</h2>
           <div className="score__content">
             <div className="score__item">
-                <label className="score__label track-label">트랙</label>
+                {!isFixedTrack() && <label className="score__label track-label">트랙</label>}
                 
-                {/* ⭐️ 조건부 렌더링: 고정 트랙이면 텍스트 표시, 아니면 선택창 표시 */}
                 {isFixedTrack() ? (
                     <div className="track__fixed-value">
                         {selectedTrack || user?.major}
@@ -247,14 +291,12 @@ const MyPage: React.FC = () => {
                 )}
             </div>
             
-            {/* 고정 트랙이 아닐 때만 저장 버튼 표시 (선택권이 있을 때만 저장 필요) */}
             {!isFixedTrack() && (
                 <button onClick={handleUpdateInfo} className="score__save-btn secondary">
                     트랙 변경 저장
                 </button>
             )}
             
-            {/* 고정 트랙일 때 안내 문구 */}
             {isFixedTrack() && (
                 <p className="text-xs text-gray-400 mt-2 text-center">
                     * 해당 전공은 단일 트랙으로 운영됩니다.
@@ -263,7 +305,7 @@ const MyPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 2. 공인어학성적 관리 섹션 */}
+        {/* 공인어학성적 관리 */}
         <section className="mypage__score">
           <h2>공인어학성적 관리</h2>
           <div className="score__content">
@@ -287,7 +329,7 @@ const MyPage: React.FC = () => {
           </div>
         </section>
 
-        {/* 3. 현장실습 관리 섹션 */}
+        {/* 현장실습 관리 */}
         <section className="mypage__internship">
           <h2>현장실습 관리</h2>
           <div className="score__content">
@@ -308,10 +350,41 @@ const MyPage: React.FC = () => {
             </button>
           </div>
         </section>
-
       </div>
 
+      {/* 오른쪽 영역 */}
       <div className="mypage__container box__right">
+        
+        {/* 학점 현황 섹션 */}
+        <section className="mypage__gpa">
+          <h2>학점 현황</h2>
+          <div className="score__content">
+            <div className="gpa__container">
+              {/* 전체 학점 */}
+              <div className="gpa__item">
+                  <span className="gpa__label">전체 학점</span>
+                  <div className="gpa__value-wrapper">
+                    <span className="gpa__value">{user?.totalGpa?.toFixed(2) || "0.00"}</span>
+                    <span className="gpa__max"> / 4.3</span>
+                  </div>
+              </div>
+              
+              {/* 구분선 */}
+              <div className="gpa__divider"></div>
+
+              {/* 전공 학점 */}
+              <div className="gpa__item">
+                  <span className="gpa__label">전공 학점</span>
+                  <div className="gpa__value-wrapper">
+                    <span className="gpa__value highlight">{user?.majorGpa?.toFixed(2) || "0.00"}</span>
+                    <span className="gpa__max"> / 4.3</span>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* 경력 및 활동 섹션 */}
         <section className="career__section">
           <h2>경력 및 활동</h2>
           <div className="career__list">
