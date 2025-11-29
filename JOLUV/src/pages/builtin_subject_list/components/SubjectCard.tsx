@@ -6,25 +6,19 @@ interface SubjectCardProps {
   subject: Subject;
 }
 
-function gradeToString(grade: number|string): string {
+function gradeToString(grade: number | string): string {
+  const numGrade = typeof grade === 'string' ? parseFloat(grade) : grade;
+  
+  if (isNaN(numGrade)) return 'NP';
+  
   const map: Record<number, string> = {
-    4.3: 'A+',
-    4.0: 'A0',
-    3.7: 'A-',
-    3.3: 'B+',
-    3.0: 'B0',
-    2.7: 'B-',
-    2.3: 'C+',
-    2.0: 'C0',
-    1.7: 'C-',
-    1.3: 'D+',
-    1.0: 'D0',
-    0.0: 'F',
-    5: 'P',   // 패스는 재이수 X라고 보고 높게
-    0.1: 'NP',
+    4.3: 'A+', 4.0: 'A0', 3.7: 'A-', 3.3: 'B+', 3.0: 'B0', 2.7: 'B-',
+    2.3: 'C+', 2.0: 'C0', 1.7: 'C-', 1.3: 'D+', 1.0: 'D0', 0.0: 'F',
+    5: 'P', 0.1: 'NP'
   };
-  return map[grade] ?? 'NP';
+  return map[numGrade] ?? 'NP';
 }
+
 
 
 const SubjectCard: React.FC<SubjectCardProps> = ({ subject }) => {
