@@ -140,7 +140,7 @@ const Builtin: React.FC = () => {
       if (sortType === 'name') {
         copied.sort((a, b) => a.name.localeCompare(b.name));
       } else if (sortType === 'grade') {
-        copied.sort((a, b) => gradeToPoint(b.grade) - gradeToPoint(a.grade));
+        copied.sort((a, b) => b.grade - (a.grade));
       } else if (sortType === 'credit') {
         copied.sort((a, b) => b.credit - a.credit);
       }
