@@ -24,8 +24,8 @@ const getScoreValue = (score: string): number => {
     'A+': 4.3, 'A0': 4.0,
     'A-': 3.7, 'B+': 3.3,
     'B0': 3.0, 'B-': 2.7,
-    'C+': 2.4, 'C0': 2.0,
-    'C-': 1.7, 'D+': 1.4,
+    'C+': 2.3, 'C0': 2.0,
+    'C-': 1.7, 'D+': 1.3,
     'D0': 1.0, 'D-': 0.7,
     'F': 0.0, 'P': 5.0, 'NP': 0.0,
   };
@@ -56,12 +56,17 @@ const Summary: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Course[]>([]);
   const [currentPage, setCurrentPage] = useState(1);        // 조회 결과용
   const [myPage, setMyPage] = useState(1);                  // 내 수강 과목용
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);            // 조회 버튼 로딩
+  const [loadingMyCourses, setLoadingMyCourses] = useState(true); // 내 수강 과목 초기 로딩
+  const [updatingCourse, setUpdatingCourse] = useState<string | null>(null); // 수정중인 과목 lecid
+  const [deletingCourse, setDeletingCourse] = useState<number | null>(null); // 삭제중인 과목 id
+  const [addingCourse, setAddingCourse] = useState<number | null>(null); // 추가중인 과목 id
 
   // 마운트 시 내 수강 과목 1번만 불러오기
   useEffect(() => {
     const fetchMyCourses = async () => {
       try {
+        setLoadingMyCourses(true);
         const myCoursesRes = await axios.get('/api/course/history');
         const myFetchedCourses: Course[] = myCoursesRes.data.map(
           (course: any, idx: number) => ({
@@ -80,6 +85,8 @@ const Summary: React.FC = () => {
         setMyCourses(myFetchedCourses);
       } catch (error) {
         console.error('내 수강 과목 불러오기 실패:', error);
+      } finally {
+        setLoadingMyCourses(false);
       }
     };
     fetchMyCourses();
@@ -168,6 +175,7 @@ const Summary: React.FC = () => {
   const updateCourseInfo = async (lecId: string, lecType: string, score: string) => {
     const payload = { lecId, lecType, receivedGrade: getScoreValue(score) };
     try {
+      setUpdatingCourse(lecId);
       await axios.put('/api/course/update', payload);
       setMyCourses(prev =>
         prev.map(c =>
@@ -176,6 +184,8 @@ const Summary: React.FC = () => {
       );
     } catch (error) {
       console.error('정보 수정 실패:', error);
+    } finally {
+      setUpdatingCourse(null);
     }
   };
 
@@ -212,42 +222,48 @@ const Summary: React.FC = () => {
     );
   };
 
-  const handleAddMyCourse = async (gwamok: Course) => {
-    const targetCourse = searchResults.find(c => c.id === gwamok.id);
-    if (!targetCourse) return;
+ const handleAddMyCourse = async (gwamok: Course) => {
+  const targetCourse = searchResults.find(c => c.id === gwamok.id);
+  if (!targetCourse) return;
 
-    const payload = {
-      lecId: targetCourse.lecid,
-      grade: Number(targetCourse.grade),
-      semester: Number(targetCourse.semester),
-      lecType: targetCourse.category,
-      credit: Number(targetCourse.credits),
-      received_grade: getScoreValue(targetCourse.score),
-    };
-
-    try {
-      await axios.post('/api/course/register', payload);
-      const newCourse = { ...targetCourse, isAdded: true, isUpdated: false };
-      setMyCourses(prev => {
-        if (prev.find(c => c.lecid === newCourse.lecid)) return prev;
-        return [...prev, newCourse];
-      });
-    } catch (error) {
-      console.error('추가 실패:', error);
-      alert('오류가 발생했습니다.');
-    }
+  const payload = {
+    lecId: targetCourse.lecid,
+    grade: Number(targetCourse.grade),
+    semester: Number(targetCourse.semester),
+    lecType: targetCourse.category,
+    credit: Number(targetCourse.credits),
+    received_grade: getScoreValue(targetCourse.score),
   };
+
+  try {
+    setAddingCourse(targetCourse.id);               // ✅ 추가 시작
+    await axios.post('/api/course/register', payload);
+    const newCourse = { ...targetCourse, isAdded: true, isUpdated: false };
+    setMyCourses(prev => {
+      if (prev.find(c => c.lecid === newCourse.lecid)) return prev;
+      return [...prev, newCourse];
+    });
+  } catch (error) {
+    console.error('추가 실패:', error);
+    alert('오류가 발생했습니다.');
+  } finally {
+    setAddingCourse(null);                          // ✅ 추가 종료
+  }
+};
 
   const handleRemoveMyCourse = async (id: number) => {
     const target = myCourses.find(c => c.id === id);
     if (!target) return;
 
     try {
+      setDeletingCourse(id);
       await axios.delete(`/api/course/${target.lecid}`);
       setMyCourses(prev => prev.filter(course => course.id !== id));
     } catch (error) {
       console.error('삭제 실패:', error);
       alert('오류가 발생했습니다.');
+    } finally {
+      setDeletingCourse(null);
     }
   };
 
@@ -268,14 +284,21 @@ const Summary: React.FC = () => {
     <div className="bg-gray-100 min-h-screen p-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">학점 관리</h1>
 
-      {/* 상단 요약 카드 */}
-
       {/* 이수 과목 정리 + 내 수강 과목 */}
       <div className="bg-white p-6 rounded-xl shadow-md mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">이수 과목 정리</h2>
 
         {/* 상단 리스트 (내 수강 과목) */}
-        {myCourses.length > 0 && (
+        {loadingMyCourses ? (
+          <div className="mb-8 border-2 border-pink-100 bg-pink-50 rounded-xl p-8 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+              <p className="text-lg font-semibold text-pink-600">
+                내 수강 과목 로딩중...
+              </p>
+            </div>
+          </div>
+        ) : myCourses.length > 0 ? (
           <div className="mb-8 border-2 border-pink-100 bg-pink-50 rounded-xl">
             <div className="flex justify-between items-center mb-3 px-4 pt-4">
               <h3 className="text-lg font-bold text-pink-600">
@@ -384,25 +407,37 @@ const Summary: React.FC = () => {
                             updateCourseInfo(
                               course.lecid,
                               course.category,
-                              course.score
+                              course.score || 'A+'
                             )
                           }
-                          disabled={course.isUpdated}
+                          disabled={
+                            course.isUpdated || updatingCourse === course.lecid
+                          }
                           className={`inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm transition
                             ${
-                              course.isUpdated
+                              course.isUpdated || updatingCourse === course.lecid
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                                 : 'bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-600 border border-blue-100'
                             }`}
                         >
-                          {course.isUpdated ? '수정완료' : '수정'}
+                          {updatingCourse === course.lecid
+                            ? '수정중...'
+                            : course.isUpdated
+                            ? '수정완료'
+                            : '수정'}
                         </button>
 
                         <button
                           onClick={() => handleRemoveMyCourse(course.id)}
-                          className="inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 border border-red-100 shadow-sm transition"
+                          disabled={deletingCourse === course.id}
+                          className={`inline-flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm transition
+                            ${
+                              deletingCourse === course.id
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                                : 'bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 border-red-100'
+                            }`}
                         >
-                          삭제
+                          {deletingCourse === course.id ? '삭제중...' : '삭제'}
                         </button>
                       </td>
                     </tr>
@@ -464,9 +499,13 @@ const Summary: React.FC = () => {
               )}
             </div>
           </div>
+        ) : (
+          <div className="mb-8 border-2 border-pink-100 bg-pink-50 rounded-xl p-8 text-center">
+            <p className="text-gray-500">수강한 과목이 없습니다.</p>
+          </div>
         )}
 
-        {/* 🔍 검색 필터 섹션 - 내 수강 과목 바로 아래, 조회 결과 위 */}
+        {/* 🔍 검색 필터 섹션 */}
         <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">🔍 강의 검색</h3>
 
@@ -644,19 +683,24 @@ const Summary: React.FC = () => {
                         <option>NP</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <button
-                        onClick={() => handleAddMyCourse(course)}
-                        disabled={course.isAdded}
-                        className={`px-4 py-1.5 rounded text-sm font-medium transition-all duration-200 ${
-                          course.isAdded
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-pink-400 text-white hover:bg-pink-500 shadow-sm hover:shadow'
-                        }`}
-                      >
-                        {course.isAdded ? '추가 완료' : '추가'}
-                      </button>
-                    </td>
+                   <td className="px-6 py-4 whitespace-nowrap text-center">
+  <button
+    onClick={() => handleAddMyCourse(course)}
+    disabled={course.isAdded || addingCourse === course.id}
+    className={`px-4 py-1.5 rounded text-sm font-medium transition-all duration-200 ${
+      course.isAdded || addingCourse === course.id
+        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+        : 'bg-pink-400 text-white hover:bg-pink-500 shadow-sm hover:shadow'
+    }`}
+  >
+    {course.isAdded
+      ? '추가 완료'
+      : addingCourse === course.id
+      ? '추가중...'
+      : '추가'}
+  </button>
+</td>
+
                   </tr>
                 ))}
 
