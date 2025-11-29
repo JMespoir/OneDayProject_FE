@@ -6,7 +6,7 @@ interface SubjectCardProps {
   subject: Subject;
 }
 
-function gradeToString(grade: number): string {
+function gradeToString(grade: number|string): string {
   const map: Record<number, string> = {
     4.3: 'A+',
     4.0: 'A0',
