@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SubjectCard from './components/SubjectCard';
 
+// 스타일은 Tailwind CSS 클래스를 사용하여 버튼을 꾸밉니다.
+// 별도 CSS 파일이 있다면 거기서 스타일을 관리해도 됩니다.
 import './index.css';
 
 type SortType = 'name' | 'grade' | 'credit';
 type SemesterLabel = '1학기' | '2학기' | '계절학기';
-type GradeLabel = '1학년' | '2학년' | '3학년' | '4학년';
+type FilterCategory = '전공' | '교양'; // 필터 카테고리 타입 정의
 
 interface Subject {
   id: number;
   name: string;
   credit: number;
-  grade: number;        // 성적 (A0, B+ ...)
-  category: string;
+  grade: number;        // 성적 (4.5 만점 기준 점수)
+  category: string;     // 이수 구분 (전공기반, 전공핵심, 일반선택 등)
   needsRetake: boolean;
-  year: number;         // 학년 (1~4)
+  year: number;         // 학년
   semester: SemesterLabel;
 }
 
@@ -25,30 +27,9 @@ interface HistoryApiItem {
   credit: number;
   received_grade: number;
   lecType: string;
-  grade: number;        // 백엔드에서 학년 (1~4)
-  semester: number;     // 1,2,3(계절) 등
+  grade: number;        // 학년
+  semester: number;     // 학기
 }
-
-// 성적을 숫자로 매핑해서 B0 이하인지 판단
-const gradeToPoint = (grade: string): number => {
-  const map: Record<string, number> = {
-    'A+': 4.3,
-    'A0': 4.0,
-    'A-': 3.7,
-    'B+': 3.3,
-    'B0': 3.0,
-    'B-': 2.7,
-    'C+': 2.4,
-    'C0': 2.0,
-    'C-': 1.7,
-    'D+': 1.3,
-    'D0': 1.0,
-    'F': 0,
-    'P': 5,   // 패스는 재이수 X라고 보고 높게
-    'NP': 0,
-  };
-  return map[grade] ?? 0;
-};
 
 const toSemesterLabel = (sem: number): SemesterLabel => {
   if (sem === 1) return '1학기';
@@ -56,48 +37,33 @@ const toSemesterLabel = (sem: number): SemesterLabel => {
   return '계절학기';
 };
 
-const toGradeLabel = (grade: number): GradeLabel => {
-  if (grade === 1) return '1학년';
-  if (grade === 2) return '2학년';
-  if (grade === 3) return '3학년';
-  return '4학년';
-};
-
 const Builtin: React.FC = () => {
-  const [selectedGrade, setSelectedGrade] = useState<GradeLabel>('1학년');
-  const [selectedSemester, setSelectedSemester] = useState<SemesterLabel>('1학기');
+  // 1. 학년/학기 상태 제거 -> 전공/교양 필터 상태 추가
+  const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('전공');
+  
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortType, setSortType] = useState<SortType>('name');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // /api/course/history 에서 데이터 가져오기 (학년/학기 파라미터 포함)
+  // 2. 데이터 가져오기 (전체 내역 조회)
   useEffect(() => {
     const fetchHistory = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const gradeNumber =
-          selectedGrade === '1학년' ? 1 :
-          selectedGrade === '2학년' ? 2 :
-          selectedGrade === '3학년' ? 3 : 4;
-
-        const semesterNumber =
-          selectedSemester === '1학기' ? 1 :
-          selectedSemester === '2학기' ? 2 : 3;
-
+        // 파라미터 없이 요청하여 전체 수강 이력을 가져옵니다.
+        // (백엔드 API가 전체 조회를 지원해야 합니다. 만약 학번/학기 필수라면 백엔드 수정 필요)
         const res = await axios.get<HistoryApiItem[]>('/api/course/history', {
-          params: {
-            grade: gradeNumber,
-            semester: semesterNumber,
-          },
+            withCredentials: true 
         });
 
         const mapped: Subject[] = res.data.map((item, idx) => {
           const point = item.received_grade;
-          const needsRetake =  (point <= 2.7);
+          // B- (2.7) 이하 재이수 필요로 간주
+          const needsRetake = (point <= 2.7);
           return {
             id: idx,
             name: item.lectureName,
@@ -120,15 +86,7 @@ const Builtin: React.FC = () => {
     };
 
     fetchHistory();
-  }, [selectedGrade, selectedSemester]);
-
-  const handleGradeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedGrade(event.target.value as GradeLabel);
-  };
-
-  const handleSemesterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedSemester(event.target.value as SemesterLabel);
-  };
+  }, []);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
@@ -140,64 +98,106 @@ const Builtin: React.FC = () => {
       if (sortType === 'name') {
         copied.sort((a, b) => a.name.localeCompare(b.name));
       } else if (sortType === 'grade') {
-        copied.sort((a, b) => gradeToPoint(b.grade) - gradeToPoint(a.grade));
+        copied.sort((a, b) => b.grade - a.grade); // 높은 성적순
       } else if (sortType === 'credit') {
-        copied.sort((a, b) => b.credit - a.credit);
+        copied.sort((a, b) => b.credit - a.credit); // 높은 학점순
       }
       return copied;
     });
   };
 
-  const filteredSubjects = subjects.filter(subject =>
-    subject.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // 3. 필터링 로직 수정 (검색어 + 카테고리)
+  const filteredSubjects = subjects.filter(subject => {
+    // (1) 검색어 필터
+    const matchesSearch = subject.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // (2) 카테고리 필터 (전공 vs 교양)
+    let matchesCategory = false;
+    if (selectedCategory === '전공') {
+      // '전공'이 포함된 모든 타입 (전공기반, 전공핵심, 전공선택 등)
+      matchesCategory = subject.category.includes('전공');
+    } else {
+      // '전공'이 아닌 것들은 모두 교양(또는 일반선택)으로 간주
+      matchesCategory = !subject.category.includes('전공');
+    }
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div className="container">
-      <header className="header">
-        {/* 학년 선택 */}
-        <select value={selectedGrade} onChange={handleGradeChange}>
-          <option value="1학년">1학년</option>
-          <option value="2학년">2학년</option>
-          <option value="3학년">3학년</option>
-          <option value="4학년">4학년</option>
-        </select>
+    <div className="container w-full">
+      <header className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
+        
+        {/* 4. 전공 / 교양 선택 버튼 (Tabs) */}
+        <div className="flex bg-gray-100 p-1 rounded-full">
+            <button
+                onClick={() => setSelectedCategory('전공')}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-200 ${
+                    selectedCategory === '전공'
+                        ? 'bg-pink-500 text-white shadow-md'
+                        : 'text-gray-500 hover:bg-gray-200'
+                }`}
+            >
+                전공
+            </button>
+            <button
+                onClick={() => setSelectedCategory('교양')}
+                className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-200 ${
+                    selectedCategory === '교양'
+                        ? 'bg-pink-500 text-white shadow-md'
+                        : 'text-gray-500 hover:bg-gray-200'
+                }`}
+            >
+                교양
+            </button>
+        </div>
 
-        {/* 학기 선택 */}
-        <select value={selectedSemester} onChange={handleSemesterChange}>
-          <option value="1학기">1학기</option>
-          <option value="2학기">2학기</option>
-          <option value="계절학기">계절학기</option>
-        </select>
+        {/* 우측 컨트롤 영역 (검색 & 정렬) */}
+        <div className="flex gap-3 w-full md:w-auto">
+            {/* 과목명 검색 */}
+            <input
+            type="text"
+            placeholder="과목명 검색..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-400 flex-grow"
+            />
 
-        {/* 과목명 검색 */}
-        <input
-          type="text"
-          placeholder="과목명 검색"
-          value={searchQuery}
-          onChange={handleSearchChange}
-        />
+            {/* 정렬 기준 선택 */}
+            <select
+            value={sortType}
+            onChange={e => setSortType(e.target.value as SortType)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-pink-400 bg-white"
+            >
+            <option value="name">이름순</option>
+            <option value="grade">성적순</option>
+            <option value="credit">학점순</option>
+            </select>
 
-        {/* 정렬 기준 선택 */}
-        <select
-          value={sortType}
-          onChange={e => setSortType(e.target.value as SortType)}
-        >
-          <option value="name">이름순</option>
-          <option value="grade">성적순</option>
-          <option value="credit">학점순</option>
-        </select>
-
-        <button onClick={handleSort}>정렬</button>
+            <button 
+                onClick={handleSort}
+                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm whitespace-nowrap"
+            >
+            정렬
+            </button>
+        </div>
       </header>
 
-      {loading && <p>불러오는 중...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {/* 로딩 및 에러 메시지 */}
+      {loading && <div className="text-center py-10 text-gray-500">데이터를 불러오는 중...</div>}
+      {error && <div className="text-center py-10 text-red-500 font-bold">{error}</div>}
 
-      <div className="cards-container">
-        {filteredSubjects.map(subject => (
-          <SubjectCard key={subject.id} subject={subject} />
-        ))}
+      {/* 리스트 출력 */}
+      <div className="cards-container grid grid-cols-1 gap-4">
+        {filteredSubjects.length === 0 && !loading && !error ? (
+            <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                해당하는 과목이 없습니다.
+            </div>
+        ) : (
+            filteredSubjects.map(subject => (
+                <SubjectCard key={subject.id} subject={subject} />
+            ))
+        )}
       </div>
     </div>
   );
