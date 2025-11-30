@@ -19,6 +19,7 @@ interface ApiCheckItem {
 interface GraduationResponse {
     majorType: string;
     studentId: number;
+    userName?: string;
     graduationPossible: boolean;
     checkList: ApiCheckItem[];
     missingCourses: string[];
@@ -162,7 +163,8 @@ const ChecklistPage: React.FC = () => {
                     🎓
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800">{data.studentId} 님</h2>
+                    {/* <h2 className="text-2xl font-bold text-gray-800">{data.studentId} 님</h2>  */}
+                    <h2 className="text-2xl font-bold text-gray-800">{data.userName} 님</h2> 
                     <p className="text-gray-600">
                         판정된 전공 트랙: <span className="font-bold text-indigo-600">{data.majorType}</span>
                     </p>

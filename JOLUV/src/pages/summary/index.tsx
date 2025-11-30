@@ -613,7 +613,7 @@ const Summary: React.FC = () => {
             <div className="w-32">
               <button
                 onClick={handleSearchClick}
-                className="w-full p-3 mt-2 bg-pink-50 text-white font-semibold rounded-lg hover:bg-pink-600 transition disabled:bg-gray-300"
+                className="w-full p-3 mt-2 bg-pink-600 text-white font-semibold rounded-lg hover:bg-pink-400 transition :bg-pink-300"
                 disabled={loading}
               >
                 {loading ? '조회 중...' : '조회'}
