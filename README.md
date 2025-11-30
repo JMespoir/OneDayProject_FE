@@ -5,29 +5,20 @@
 <tr>
 <td>
 
-|                 ChanWoong                  |
+|                 Sion Jang                  |
 | :---------------------------: |
 | <img width="240px" src="https://avatars.githubusercontent.com/ChanWooong" /> |
-|     [@ChanWooong](https://github.com/ChanWooong)       |
+|     [@ChanWooong](https://github.com/Jangsion)       |
 |          National - 🇰🇷 Republic Of Korea           |
 
 </td>
 <td>
 
-|                  JaeMin Park                   |
+|                  Kim Dohyeon                   |
 | :------------------------------------------------: |
 | <img width="240px" src="https://avatars.githubusercontent.com/Woogie333" /> |
 |     [@woogie333](https://github.com/woogie333) |
 |          National - 🇰🇷 Republic Of Korea            |
-
-</td>
-<td>
-
-|           HyunWook Kwak           |
-| :---------------------------: |
-| <img width="240px" src="https://avatars.githubusercontent.com/Jmespoir" /> |
-|     [@jmespoir](https://github.com/JMespoir)       |
-|          National - 🇰🇷 Republic Of Korea           |
 
 </td>
 </tr>
