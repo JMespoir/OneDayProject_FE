@@ -1,21 +1,50 @@
-# JOLUV – 경북대학교 졸업 관리 플랫폼
+# 👨‍🎓 JOLUV
 
-**성공적인 졸업을 위한 길라잡이, JOLUV**
+## 기여자
+<table>
+<tr>
+<td>
 
-경북대학교 컴퓨터학부의 복잡한 졸업 요건을 한눈에 파악하고, 학점과 커리어를 체계적으로 관리할 수 있는 맞춤형 웹 서비스입니다.
+|                 ChanWoong                  |
+| :---------------------------: |
+| <img width="240px" src="https://avatars.githubusercontent.com/ChanWooong" /> |
+|     [@ChanWooong](https://github.com/ChanWooong)       |
+|          National - 🇰🇷 Republic Of Korea           |
 
----
+</td>
+<td>
 
-##  프로젝트 개요
+|                  JaeMin Park                   |
+| :------------------------------------------------: |
+| <img width="240px" src="https://avatars.githubusercontent.com/Woogie333" /> |
+|     [@woogie333](https://github.com/woogie333) |
+|          National - 🇰🇷 Republic Of Korea            |
 
-대학생들은 졸업을 위해 전공/교양 이수 학점, 필수 과목, 어학 성적, 대외활동 등 다양한 요건을 일일이 확인해야 합니다.
+</td>
+<td>
 
-JOLUV는 학교 포털의 복잡한 텍스트 대신, 직관적인 그래프와 대시보드를 통해 사용자의 현재 학업 진행도와 남은 졸업 요건을 시각적으로 제공합니다.
+|           HyunWook Kwak           |
+| :---------------------------: |
+| <img width="240px" src="https://avatars.githubusercontent.com/Jmespoir" /> |
+|     [@jmespoir](https://github.com/JMespoir)       |
+|          National - 🇰🇷 Republic Of Korea           |
 
-* Target: 경북대학교 컴퓨터학부 재학생
-* Goal: 졸업 요건 충족 여부 자동 분석 + 학점 시각화 + 대외활동/커리어 관리
+</td>
+</tr>
+</table>
 
----
+## Title
+JOLUV  - 경북대학교 졸업 관리 플랫폼 "성공적인 졸업을 위한 길라잡이"
+
+경북대학교 컴퓨터학부의 **복잡한 졸업 요건을 한눈에 파악하고, 체계적으로 학점과 커리어를 관리**할 수 있는 경북대학교 컴퓨터학부생의 맞춤형 웹 서비스입니다.
+
+## 프로젝트 개요
+컴퓨터학부 내부에 필요한 졸업 요건들에 대해서 기존에는 확인이 어려워 직접 수기로 적거나 입력해서 관리하는 방식을 택해야 했습니다. 이러한 불편함을 인지하고 졸업에 필요한 요소들을 미리 파악해 졸업을 하는데 부족한 점과 현재 나의 상태를 보다 편리하게 알고싶다는 니즈가 강하다는 것을 주변 학우들을 통해 알게 되었고, 이러한 고민이 발단이 되어 졸업 요건을 확인할 수 있는 길라잡이를 만들고자 JOLUV라는 서비스를 기획하게 되었습니다.
+
+### 대상
+경북대학교 컴퓨터학부 소속 학생
+### 목표
+복잡한 졸업 요건을 편리한 UI로 쉽게 확인할 수 있는 서비스 제공.
 
 ##  주요 기능
 
