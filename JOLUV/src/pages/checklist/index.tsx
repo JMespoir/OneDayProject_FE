@@ -116,6 +116,7 @@ const ChecklistPage: React.FC = () => {
                 setLoading(true);
                 const response = await axios.get<GraduationResponse>(`/api/graduation/my-status`);
                 setData(response.data);
+                console.log("체크리스트 데이터:", response.data);
             } catch (err) {
                 console.error(err);
                 setError("데이터를 불러오는데 실패했습니다.");
