@@ -7,8 +7,8 @@
 
 |                 Sion Jang                  |
 | :---------------------------: |
-| <img width="240px" src="https://avatars.githubusercontent.com/ChanWooong" /> |
-|     [@ChanWooong](https://github.com/Jangsion)       |
+| <img width="240px" src="https://avatars.githubusercontent.com/sionjang23" /> |
+|     [@ChanWooong](https://github.com/sionjang23)       |
 |          National - 🇰🇷 Republic Of Korea           |
 
 </td>
