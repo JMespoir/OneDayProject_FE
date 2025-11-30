@@ -112,6 +112,7 @@ const MyPage: React.FC = () => {
       try {
         const userRes = await axios.get('/api/auth/mypage', { withCredentials: true });
         const data = userRes.data;
+        console.log("MyPage 사용자 데이터:", data);
         let fetchedUser: UserInfo | null = null;
         let currentUserStudentId = 0;
 

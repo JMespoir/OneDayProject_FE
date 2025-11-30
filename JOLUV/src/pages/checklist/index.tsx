@@ -1,3 +1,4 @@
+// ChecklistPage.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; 
@@ -134,21 +135,21 @@ const ChecklistPage: React.FC = () => {
         <div className="p-8 max-w-7xl mx-auto">
             {/* ⭐️ 안내 배너 (로그아웃 상태일 때만 표시) */}
             {!userId && (
-                <div className="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 shadow-sm">
+                <div className="flex justify-between items-center bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6 shadow-sm">
                     <div className="flex items-center gap-3">
                         <span className="text-2xl">👀</span>
                         <div>
-                            <p className="text-blue-800 font-bold text-sm sm:text-base">
+                            <p className="text-gray-800 font-bold text-sm sm:text-base">
                                 현재는 예시 데이터가 표시되고 있습니다.
                             </p>
-                            <p className="text-blue-600 text-xs sm:text-sm">
+                            <p className="text-gray-600 text-xs sm:text-sm">
                                 내 진짜 졸업 요건을 확인하려면 로그인해주세요.
                             </p>
                         </div>
                     </div>
                     <button 
                         onClick={() => navigate('/login')}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors whitespace-nowrap ml-4"
+                        className="bg-pink-600 text-white px-4 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors whitespace-nowrap ml-4"
                     >
                         로그인 하기
                     </button>
