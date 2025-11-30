@@ -33,13 +33,15 @@ export default function ScoreManagementPage() {
       <div className="max-w-[1360px] mx-auto mt-12">
         {userId ? (
             // ✅ 로그인 상태: 실제 그래프 (높이 h-80 유지)
-            <div className="flex flex-col md:flex-row items-stretch gap-8 h-80">
-                <div className='flex-1 h-full'>
-                    <TotalCredits />
-                </div>
-                <div className='flex-1 h-full'>
-                    <EachCredits />
-                </div>
+            <div className="flex flex-col lg:flex-row items-stretch gap-6 h-auto lg:h-50">  
+        <div className='flex-1'>
+            {/* ⭐️ 수정됨: data 속성 제거 */}
+            <TotalCredits />
+        </div>
+        <div className='flex-1'>
+            {/* ⭐️ 수정됨: data 속성 제거 */}
+            <EachCredits />
+        </div>
             </div>
         ) : (
             // 🔒 로그아웃 상태: 안내 박스 (메인페이지와 동일한 h-64 사이즈)
