@@ -73,36 +73,6 @@ JOLUV는 학교 포털의 복잡한 텍스트 대신, 직관적인 그래프와 
 
 ---
 
-##  프로젝트 구조 (Directory Structure)
-
-src
-├── assets/
-├── components/
-│   ├── Layout.tsx
-│   ├── Header.tsx
-│   ├── ProtectedRoute.tsx
-│   └── LoginRequest.tsx
-├── contexts/
-│   └── AuthContext.tsx
-├── displayCredits/
-│   ├── totalCredits.tsx
-│   └── eachCredits.tsx
-├── pages/
-│   ├── main/
-│   ├── login/
-│   ├── mypage/
-│   ├── summary/
-│   ├── checklist/
-│   ├── score_management/
-│   └── bulitin_subject_list/
-│        └── components/
-├── App.tsx
-├── main.tsx
-└── index.css
-
-
----
-
 배포 링크
 
 **JOLUV 서비스 바로가기 : (https://one-day-project-fe-4z4t.vercel.app/)**
