@@ -6,23 +6,21 @@ interface SubjectCardProps {
   subject: Subject;
 }
 
-function gradeToString(grade: number | string): string {
-  const numGrade = typeof grade === 'string' ? parseFloat(grade) : grade;
-  
-  if (isNaN(numGrade)) return 'NP';
-  
+// ❌ [삭제] 이 함수는 필요 없습니다. 
+// 부모 컴포넌트(Builtin.tsx)에서 이미 변환해서 보내주고 있기 때문입니다.
+/*
+function gradeToString(grade: number): string {
   const map: Record<number, string> = {
-    4.3: 'A+', 4.0: 'A0', 3.7: 'A-', 3.3: 'B+', 3.0: 'B0', 2.7: 'B-',
-    2.3: 'C+', 2.0: 'C0', 1.7: 'C-', 1.3: 'D+', 1.0: 'D0', 0.0: 'F',
-    5: 'P', 0.1: 'NP'
+    ...
   };
   return map[numGrade] ?? 'NP';
 }
-
+*/
 
 
 const SubjectCard: React.FC<SubjectCardProps> = ({ subject }) => {
-  const { name, credit, grade, category, needsRetake, } = subject;
+  // grade에는 이미 "A+", "B0" 같은 문자열이 들어있습니다.
+  const { name, credit, grade, category, needsRetake } = subject;
 
   return (
     <div className="subject-card">
@@ -30,7 +28,9 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject }) => {
 
       <div className="subject-meta">
         <span className="subject-credit-pill">{credit}학점</span>
-        <span className="subject-grade-pill">성적 {gradeToString(grade)}</span>
+        
+        {/* ⭐️ [수정] 함수 호출을 제거하고 grade 변수를 바로 사용하세요 */}
+        <span className="subject-grade-pill">성적 {grade}</span>
       </div>
 
       <div className="subject-extra">

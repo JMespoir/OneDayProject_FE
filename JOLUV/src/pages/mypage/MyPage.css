@@ -44,12 +44,19 @@
   border-bottom: 1px solid #eee;
 }
 
-.profile__img {
+.profile__emoji {
+  font-size: 4rem; /* 이모지 크기 키우기 */
+  margin-right: 20px; /* 이름과의 간격 */
+  
+  /* 원형 배경을 만들고 싶다면 아래 속성들 유지, 아니면 삭제 */
   width: 80px;
   height: 80px;
-  background-color: #fcd34d; /* 노란색 별 */
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  flex-shrink: 0; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fce7f3; /* 연한 핑크색 배경 (테마에 맞춤) */
+  border-radius: 50%; /* 동그라미 만들기 */
+  cursor: default;
 }
 
 .user__name {
@@ -697,4 +704,5 @@
     color: #999;
     padding: 20px 0;
 }
+
 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; 
+import { useAuth } from '../../contexts/AuthContext'; // 로그인 상태 확인용
 
 // ----------------------------------------------------------------------
-// 1. 타입 정의 (백엔드 DTO와 일치)
+// 1. 타입 정의
 // ----------------------------------------------------------------------
 
 interface ApiCheckItem {
@@ -28,6 +30,23 @@ interface RequirementRowProps {
     percentage: number;
     message: string;
 }
+
+// ----------------------------------------------------------------------
+// 📋 목업 데이터 정의 (로그아웃 상태용)
+// ----------------------------------------------------------------------
+const MOCK_CHECKLIST_DATA: GraduationResponse = {
+    studentId: 2025000000!,
+    majorType: "심화컴퓨팅전공트랙 (예시)",
+    graduationPossible: false,
+    checkList: [
+        { category: "총 학점", current: 120, required: 130, passed: false, message: "총 학점이 10학점 부족합니다." },
+        { category: "전공 학점", current: 65, required: 70, passed: false, message: "전공 학점이 부족합니다." },
+        { category: "교양 학점", current: 30, required: 30, passed: true, message: "이수 완료" },
+        { category: "영어 성적", current: 850, required: 700, passed: true, message: "기준 점수 충족 (토익)" },
+        { category: "현장 실습", current: 1, required: 1, passed: true, message: "인턴십 이수 완료" },
+    ],
+    missingCourses: ["캡스톤디자인", "소프트웨어공학", "운영체제"]
+};
 
 // ----------------------------------------------------------------------
 // 2. RequirementRow 컴포넌트
@@ -75,12 +94,23 @@ const RequirementRow: React.FC<RequirementRowProps> = ({
 // 3. 메인 페이지 컴포넌트
 // ----------------------------------------------------------------------
 const ChecklistPage: React.FC = () => {
+    const { userId } = useAuth(); // 로그인 상태 가져오기
+    const navigate = useNavigate();
+
     const [data, setData] = useState<GraduationResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
+            // ⭐️ 1. 로그인 안 되어 있으면 목업 데이터 사용
+            if (!userId) {
+                setData(MOCK_CHECKLIST_DATA);
+                setLoading(false);
+                return;
+            }
+
+            // ⭐️ 2. 로그인 되어 있으면 실제 API 호출
             try {
                 setLoading(true);
                 const response = await axios.get<GraduationResponse>(`/api/graduation/my-status`);
@@ -94,7 +124,7 @@ const ChecklistPage: React.FC = () => {
         };
 
         fetchData();
-    }, []);
+    }, [userId]); // userId 변경 시 재실행
 
     if (loading) return <div className="p-8 text-center">로딩 중...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
@@ -102,6 +132,29 @@ const ChecklistPage: React.FC = () => {
 
     return (
         <div className="p-8 max-w-7xl mx-auto">
+            {/* ⭐️ 안내 배너 (로그아웃 상태일 때만 표시) */}
+            {!userId && (
+                <div className="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl">👀</span>
+                        <div>
+                            <p className="text-blue-800 font-bold text-sm sm:text-base">
+                                현재는 예시 데이터가 표시되고 있습니다.
+                            </p>
+                            <p className="text-blue-600 text-xs sm:text-sm">
+                                내 진짜 졸업 요건을 확인하려면 로그인해주세요.
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate('/login')}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors whitespace-nowrap ml-4"
+                    >
+                        로그인 하기
+                    </button>
+                </div>
+            )}
+
             {/* 1. 프로필 섹션 */}
             <section className="flex items-center p-6 bg-white rounded-lg shadow-md mb-8 border-l-4 border-pink-500">
                 <div className="w-16 h-16 bg-gray-200 rounded-full mr-6 flex items-center justify-center text-2xl">
@@ -118,7 +171,7 @@ const ChecklistPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* 2. 요건 리스트 섹션 (위로 이동됨) */}
+            {/* 2. 요건 리스트 섹션 */}
             <h1 className="text-2xl font-bold text-gray-800 mb-4">졸업 요건 상세 점검</h1>
             <section className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
@@ -145,9 +198,9 @@ const ChecklistPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* 3. 미이수 필수 과목 경고창 (아래로 이동됨) */}
+            {/* 3. 미이수 필수 과목 경고창 */}
             {data.missingCourses && data.missingCourses.length > 0 && (
-                <section className="bg-red-50 border border-red-200 rounded-lg p-4 mt-8"> {/* mt-8 추가하여 윗 요소와 간격 확보 */}
+                <section className="bg-red-50 border border-red-200 rounded-lg p-4 mt-8">
                     <h3 className="text-red-700 font-bold text-lg mb-2">🚨 미이수 필수 과목</h3>
                     <ul className="list-disc list-inside text-red-600 space-y-1">
                         {data.missingCourses.map((course, idx) => (

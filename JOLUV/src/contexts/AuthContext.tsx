@@ -39,9 +39,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setIsLoggedIn(false);
     setUserId(null);
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userId");
-    sessionStorage.removeItem("sessionId"); // 세션 ID도 삭제
+    localStorage.removeItem('userId');
+    localStorage.removeItem('accessToken'); 
+    sessionStorage.clear(); // 세션 스토리지도 싹 비우기
   };
 
   return (
