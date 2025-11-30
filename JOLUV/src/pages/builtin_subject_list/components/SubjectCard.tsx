@@ -13,9 +13,10 @@ function gradeToString(grade: number): string {
   const map: Record<number, string> = {
     ...
   };
-  return map[grade] ?? 'NP';
+  return map[numGrade] ?? 'NP';
 }
 */
+
 
 const SubjectCard: React.FC<SubjectCardProps> = ({ subject }) => {
   // grade에는 이미 "A+", "B0" 같은 문자열이 들어있습니다.
