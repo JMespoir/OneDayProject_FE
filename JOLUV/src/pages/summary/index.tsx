@@ -196,6 +196,7 @@ const Summary: React.FC = () => {
       );
 
       setSearchResults(fetchedSearchResults);
+      console.log('아아아아아',fetchedSearchResults);
       setCurrentPage(1);
     } catch (error) {
       console.error('데이터 불러오기 실패:', error);
