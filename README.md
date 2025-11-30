@@ -8,7 +8,7 @@
 |                 Sion Jang                  |
 | :---------------------------: |
 | <img width="240px" src="https://avatars.githubusercontent.com/sionjang23" /> |
-|     @sionjang23(https://github.com/jangsion23))       |
+|     @sionjang23(https://github.com/jangsion23)       |
 |          National - 🇰🇷 Republic Of Korea           |
 
 </td>
