@@ -8,16 +8,16 @@
 |                 Sion Jang                  |
 | :---------------------------: |
 | <img width="240px" src="https://avatars.githubusercontent.com/sionjang23" /> |
-|     @sionjang23(https://github.com/jangsion23)       |
+|     [@sionjang23](https://github.com/jangsion23)       |
 |          National - 🇰🇷 Republic Of Korea           |
 
 </td>
 <td>
 
-|                  Kim Dohyeon                   |
+|                  Dohyeon Kim                    |
 | :------------------------------------------------: |
-| <img width="240px" src="https://avatars.githubusercontent.com/Woogie333" /> |
-|     [@woogie333](https://github.com/woogie333) |
+| <img width="240px" src="https://avatars.githubusercontent.com/rlaehgus06" /> |
+|     [@rlaehgus06](https://github.com/rlaehgus06) |
 |          National - 🇰🇷 Republic Of Korea            |
 
 </td>
