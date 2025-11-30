@@ -1,7 +1,17 @@
+//myPage.tsx
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import './MyPage.css';
+import { useNavigate } from 'react-router-dom';
+
+// ----------------------------------------------------------------------
+// ⭐️ [설정] Axios 전역 설정 (CSRF 토큰)
+// ----------------------------------------------------------------------
+axios.defaults.withCredentials = true; 
+axios.defaults.xsrfCookieName = 'XSRF-TOKEN'; 
+axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 
 // ----------------------------------------------------------------------
 // 1. 타입 정의
@@ -14,9 +24,9 @@ interface UserInfo {
   track: string;
   profileImage?: string;
   studentId?: string;
-  eng_score?: number;
-  gpa?: number; // 전체 평점
-  gpa_major?: number; // 전공 평점
+  eng_score?: string; 
+  totalGpa?: number; 
+  majorGpa?: number; 
   internship?: boolean;
 }
 
@@ -31,6 +41,14 @@ interface ActivityItem {
 
 const MyPage: React.FC = () => {
   const { userId } = useAuth();
+    
+   /* useEffect(() => {
+    // userId가 없거나(로그인 안함) null이면 로그인 페이지로 강제 이동
+    if (!userId) {
+      alert("로그인이 필요한 페이지입니다.");
+      navigate('/login'); // 로그인 경로로 쫓아냄
+    }
+  }, [userId, navigate]);*/
 
   // ----------------------------------------------------------------------
   // 2. State 관리
@@ -93,72 +111,43 @@ const MyPage: React.FC = () => {
     const fetchData = async () => {
       try {
         const userRes = await axios.get('/api/auth/mypage', { withCredentials: true });
-        
-        // 🔍 [디버깅] 콘솔에서 실제 들어오는 데이터를 확인해보세요!
-        console.log("MyPage Data:", userRes.data);
-
-        let currentUserStudentId = 0;
-        let fetchedUser: UserInfo | null = null;
-
         const data = userRes.data;
+        console.log("MyPage 사용자 데이터:", data);
+        let fetchedUser: UserInfo | null = null;
+        let currentUserStudentId = 0;
 
-        if (typeof data === 'string') {
-            // HTML 파싱 로직 (기존 유지)
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data, 'text/html');
-            const welcomeP = Array.from(doc.querySelectorAll('p')).find(p => p.textContent?.includes('환영합니다'));
-            const name = welcomeP?.querySelector('span')?.textContent || '이름 없음';
-            const idSpan = Array.from(doc.querySelectorAll('p')).find(p => p.textContent?.includes('아이디:'))?.querySelector('span');
-            const fetchedUserId = idSpan ? idSpan.textContent : '';
-            const studentIdSpan = Array.from(doc.querySelectorAll('p')).find(p => p.textContent?.includes('학번:'))?.querySelector('span');
-            const studentId = studentIdSpan ? studentIdSpan.textContent : '';
-            currentUserStudentId = parseInt(studentId || '0');
-            const majorInput = doc.querySelector('input[name="major"]') as HTMLInputElement;
-            const major = majorInput ? majorInput.value : '컴퓨터학부';
-            const trackInput = doc.querySelector('input[name="specific_major"]') as HTMLInputElement;
-            const track = trackInput ? trackInput.value : '트랙 정보 없음';
-            const engInput = doc.querySelector('input[name="eng_score"]') as HTMLInputElement;
-            const score = engInput ? parseInt(engInput.value) : 0;
-            const internshipInput = doc.querySelector('input[name="internship"]') as HTMLInputElement;
-            const isInternship = internshipInput ? internshipInput.checked : false;
-
-            fetchedUser = {
-                name: name || '이름 없음',
-                user_id: fetchedUserId || userId || '',
-                studentId: studentId || '',
-                major: major,
-                track: track, 
-                eng_score: score,
-                gpa: 0.0, 
-                gpa_major: 0.0,
-                internship: isInternship,
-                profileImage: ''
-            };
-
-        } else {
-            // ⭐️ [JSON 처리 수정] 안전한 타입 변환 적용
+        if (data && typeof data === 'object') {
             currentUserStudentId = parseInt(data.studentId || '0');
+
+            // JSON 필드에서 학점 가져오기 (키값: totalgpa, majorgpa 우선 사용)
+            const rawGpa = data.totalgpa ?? data.gpa; 
+            const rawGpaMajor = data.majorgpa ?? data.gpa_major;
             
+            const jsonGpa = parseFloat(String(rawGpa)) || 0.0;
+            const jsonGpaMajor = parseFloat(String(rawGpaMajor)) || 0.0;
+            
+            // ⭐️ [조회 수정] engscore 키에서 값 가져오기
+            const rawEngScore = data.engscore ?? data.eng_score; 
+
+            // 데이터 매핑
             fetchedUser = {
                 name: data.name || '이름 없음',
                 user_id: data.userId || userId || '',
                 studentId: data.studentId || '',
                 major: data.major || '컴퓨터학부',
-                track: data.track || '다중전공트랙',
-                eng_score: data.eng_score || 0,
-                
-                // ⭐️ Number()로 감싸서 문자열/숫자 모두 처리 가능하도록 수정
-                gpa: Number(data.gpa) || 0.0,       
-                gpa_major: Number(data.gpa_major) || 0.0, 
-                
-                internship: data.internship || false,
+                // 조회 시 specific_major 키 사용
+                track: data.specific_major || data.track || '다중전공트랙', 
+                eng_score: String(rawEngScore || "0"),
+                totalGpa: jsonGpa,       
+                majorGpa: jsonGpaMajor, 
+                internship: Boolean(data.internship),
                 profileImage: ''
             };
         }
 
         if (fetchedUser) {
             setUser(fetchedUser);
-            setEngScoreInput((fetchedUser.eng_score || 0).toString());
+            setEngScoreInput(fetchedUser.eng_score || "0");
             setInternshipChecked(fetchedUser.internship || false);
 
             const fixedTrack = getFixedTrackValue(fetchedUser.major);
@@ -276,26 +265,63 @@ const MyPage: React.FC = () => {
   const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => setEngScoreInput(e.target.value);
   const handleInternshipChange = (e: React.ChangeEvent<HTMLInputElement>) => setInternshipChecked(e.target.checked);
   
+// ⭐️ [수정된 버전] handleUpdateInfo
   const handleUpdateInfo = async () => {
       if (!user) return;
+      
+      // 1. 영어 성적 변환 (String -> Number or Null)
+      // 값이 없거나 공백이면 0 (또는 null)으로 처리
+      const finalEngScore = engScoreInput && engScoreInput.trim() !== '' 
+                            ? parseInt(engScoreInput, 10) 
+                            : 0; 
+
+      // 2. DTO 생성
+      const updatePayload = {
+          // 트랙
+          specific_major: selectedTrack, 
+          
+          // 전공 (수정되지 않더라도 기존 값 유지 위해 전송)
+          major: user.major,
+          
+          // 영어 성적 (반드시 숫자로 변환해서 전송)
+          eng_score: finalEngScore,
+          engScore: finalEngScore, // 혹시 모를 카멜케이스 대비
+          
+          // 인턴십 (Boolean)
+          internship: internshipChecked
+          
+          // ⚠️ 주의: 여기에 포함되지 않은 필드(예: 학점, 이름 등)는 
+          // 백엔드 DTO에서 null이 됩니다.
+          // 따라서 백엔드 UserService에서 반드시 'null 체크'를 해야 데이터가 날아가지 않습니다.
+      };
+      
+
       try {
-        const formData = new URLSearchParams();
-        formData.append('major', user.major);
-        formData.append('specific_major', selectedTrack); 
-        formData.append('eng_score', engScoreInput);
-        formData.append('internship', internshipChecked.toString());
-        
-        const response = await axios.post('/api/auth/mypage/update', formData, {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        const response = await axios.post('/api/auth/mypage/update', updatePayload, {
+            headers: { 'Content-Type': 'application/json' },
             withCredentials: true
         });
+
         if (response.status === 200) {
             showToastMessage('정보가 저장되었습니다! 🎉');
-            setUser({ ...user, track: selectedTrack, eng_score: parseInt(engScoreInput)||0, internship: internshipChecked });
+            // 화면 상태 업데이트
+            setUser({ 
+                ...user, 
+                track: selectedTrack, 
+                eng_score: String(finalEngScore), // 화면엔 다시 문자로 저장
+                internship: internshipChecked 
+            });
         }
-      } catch(e) { console.error(e); showToastMessage('저장 실패'); }
+      } catch(e: any) { 
+          console.error("정보 저장 실패:", e); 
+          if (e.response) {
+               // 에러 처리 로직 유지
+               if (e.response.status === 401) showToastMessage('세션이 만료되었습니다.');
+               else if (e.response.status === 400) showToastMessage('입력값이 올바르지 않습니다 (숫자 확인).');
+               else showToastMessage('저장 실패 (서버 오류)');
+          }
+      }
   };
-
   const isTrackFixed = () => {
       if (!user) return false;
       return getFixedTrackValue(user.major) !== null;
@@ -337,12 +363,11 @@ const MyPage: React.FC = () => {
         </div>
       )}
 
-      {/* 왼쪽 섹션 */}
       <div className="mypage__container box__left">
          <header className="mypage__header">
-            <div className="profile__img" />
+            <div className="profile__emoji">🎓</div>
             <div>
-                <h1 className="user__name">{user ? `${user.name} 님` : '...'}</h1>
+                <h1 className="user__name"> {user ? `${user.name} 님` : '...'}</h1>
                 {user?.studentId && (
                     <p className="user__info" style={{ marginBottom: '5px', fontWeight: 'bold' }}>
                         학번 : {user.studentId}
@@ -357,23 +382,27 @@ const MyPage: React.FC = () => {
              <div className="score__content">
                  <div className="score__item">
                      <label className="score__label track-label">트랙</label>
-                     <select 
-                       value={selectedTrack} 
-                       onChange={handleTrackChange}
-                       className="track__select"
-                       disabled={isTrackFixed()}
-                       style={isTrackFixed() ? { backgroundColor: '#f0f0f0', color: 'black', cursor: 'not-allowed' } : {}}
-                     >
-                       {renderTrackOptions()}
-                     </select>
+                     {isTrackFixed() ? (
+                        <div className="fixed-track-display">
+                            <span className="fixed-track-text">{selectedTrack}</span>
+                        </div>
+                     ) : (
+                        <select 
+                           value={selectedTrack} 
+                           onChange={handleTrackChange}
+                           className="track__select"
+                         >
+                           {renderTrackOptions()}
+                         </select>
+                     )}
                  </div>
                  {!isTrackFixed() && (
                     <button onClick={handleUpdateInfo} className="score__save-btn secondary">트랙 저장</button>
                  )}
                  {isTrackFixed() && (
-                    <span style={{ fontSize: '0.8rem', color: '#888', marginTop: '5px', display: 'block' }}>
-                        ※ 해당 전공은 단일트랙으로 지정됩니다.
-                    </span>
+                    <p className="fixed-track-info">
+                        ※ 전공에 따라 트랙이 자동 지정되었습니다.
+                    </p>
                  )}
              </div>
          </section>
@@ -384,7 +413,7 @@ const MyPage: React.FC = () => {
                  <div className="score__item">
                      <label htmlFor="engScore" className="score__label">TOEIC</label>
                      <div className="score__input-group">
-                         <input type="number" id="engScore" value={engScoreInput} onChange={handleScoreChange} placeholder="0" className="score__input" />
+                         <input type="text" id="engScore" value={engScoreInput} onChange={handleScoreChange} placeholder="0" className="score__input" />
                          <span className="score__unit">점</span>
                      </div>
                  </div>
@@ -406,9 +435,7 @@ const MyPage: React.FC = () => {
          </section>
       </div>
 
-      {/* 오른쪽 섹션 */}
       <div className="mypage__container box__right">
-        
         {/* 학점 현황 */}
         <section className="mypage__gpa">
           <h2>학점 현황</h2>
@@ -417,8 +444,7 @@ const MyPage: React.FC = () => {
               <div className="gpa__item">
                   <span className="gpa__label">전체 학점</span>
                   <div className="gpa__value-wrapper">
-                    {/* ⭐️ Number 타입 보장 및 소수점 처리 */}
-                    <span className="gpa__value">{user?.gpa?.toFixed(2) || "0.00"}</span>
+                    <span className="gpa__value">{user?.totalGpa?.toFixed(2) || "0.00"}</span>
                     <span className="gpa__max"> / 4.3</span>
                   </div>
               </div>
@@ -426,7 +452,7 @@ const MyPage: React.FC = () => {
               <div className="gpa__item">
                   <span className="gpa__label">전공 학점</span>
                   <div className="gpa__value-wrapper">
-                    <span className="gpa__value highlight">{user?.gpa_major?.toFixed(2) || "0.00"}</span>
+                    <span className="gpa__value highlight">{user?.majorGpa?.toFixed(2) || "0.00"}</span>
                     <span className="gpa__max"> / 4.3</span>
                   </div>
               </div>
@@ -475,16 +501,31 @@ const MyPage: React.FC = () => {
                                         <h3 className="view-title">{item.title}</h3>
                                         <p className="view-detail">{item.detail}</p>
                                     </div>
-                                    <div className="view-actions">
-                                        <button onClick={() => handleEditClick(item)} className="icon-btn edit" title="수정">✏️</button>
-                                        <button onClick={() => handleDelete(item.id)} className="icon-btn delete" title="삭제">🗑️</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })
-            )}
+                                    <div className="view-actions flex gap-2">
+    {/* 수정 버튼 (펜 아이콘) */}
+    <button 
+        onClick={() => handleEditClick(item)} 
+        className="text-gray-400 hover:text-blue-500 transition-colors p-1" 
+        title="수정"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+        </svg>
+    </button>
+
+    {/* 삭제 버튼 (쓰레기통 아이콘) */}
+    <button 
+        onClick={() => handleDelete(item.id)} 
+        className="text-gray-400 hover:text-red-500 transition-colors p-1" 
+        title="삭제"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+        </svg>
+        </button>
+             </div>
+        </div>)}
+    </div>);}))}
           </div>
 
           <hr className="divider" />

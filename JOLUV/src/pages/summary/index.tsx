@@ -1,5 +1,13 @@
+// Summary Page - 학점 관리 페이지
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext'; // 1. 로그인 확인용
+import { useNavigate } from 'react-router-dom';       // 2. 페이지 이동용
+
+// ----------------------------------------------------------------------
+// 1. 타입 및 헬퍼 함수 정의
+// ----------------------------------------------------------------------
 
 interface Course {
   id: number;
@@ -46,7 +54,14 @@ const SemesterNumberChange = (sem: number) => {
   }
 };
 
+// ----------------------------------------------------------------------
+// 2. 컴포넌트 구현
+// ----------------------------------------------------------------------
+
 const Summary: React.FC = () => {
+  const { userId } = useAuth(); // 3. 로그인 상태 가져오기
+  const navigate = useNavigate(); // 4. 이동 함수
+
   const [myCourses, setMyCourses] = useState<Course[]>([]);
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
@@ -62,6 +77,12 @@ const Summary: React.FC = () => {
 
   // 마운트 시 내 수강 과목 1번만 불러오기
   useEffect(() => {
+    // ⭐️ 로그인 안 되어 있으면 로딩 끄고 API 호출 안 함
+    if (!userId) {
+        setLoadingMyCourses(false);
+        return;
+    }
+
     const fetchMyCourses = async () => {
       try {
         setLoadingMyCourses(true);
@@ -88,7 +109,7 @@ const Summary: React.FC = () => {
       }
     };
     fetchMyCourses();
-  }, []);
+  }, [userId]); // userId가 변경될 때 체크
 
   // 내 수강 과목이 바뀌면 검색 결과의 isAdded 동기화
   useEffect(() => {
@@ -208,8 +229,6 @@ const Summary: React.FC = () => {
       const next = prev.map(c =>
         c.id === id ? { ...c, category: newCategory } : c
       );
-      const changed = next.find(c => c.id === id);
-      console.log('카테고리 변경 후:', changed);
       return next;
     });
   };
@@ -221,6 +240,14 @@ const Summary: React.FC = () => {
   };
 
  const handleAddMyCourse = async (gwamok: Course) => {
+  // ⭐️ 로그인 안 되어 있으면 막기
+  if (!userId) {
+      if (window.confirm('로그인이 필요한 기능입니다. 로그인하시겠습니까?')) {
+          navigate('/login');
+      }
+      return;
+  }
+
   const targetCourse = searchResults.find(c => c.id === gwamok.id);
   if (!targetCourse) return;
 
@@ -234,7 +261,7 @@ const Summary: React.FC = () => {
   };
 
   try {
-    setAddingCourse(targetCourse.id);               // ✅ 추가 시작
+    setAddingCourse(targetCourse.id);
     await axios.post('/api/course/register', payload);
     const newCourse = { ...targetCourse, isAdded: true, isUpdated: false };
     setMyCourses(prev => {
@@ -245,7 +272,7 @@ const Summary: React.FC = () => {
     console.error('추가 실패:', error);
     alert('오류가 발생했습니다.');
   } finally {
-    setAddingCourse(null);                          // ✅ 추가 종료
+    setAddingCourse(null);
   }
 };
 
@@ -286,8 +313,22 @@ const Summary: React.FC = () => {
       <div className="bg-white p-6 rounded-xl shadow-md mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">이수 과목 정리</h2>
 
-        {/* 상단 리스트 (내 수강 과목) */}
-        {loadingMyCourses ? (
+        {/* ⭐️ [수정] 상단 리스트 (로그인 여부에 따른 분기 처리) */}
+        {!userId ? (
+            // 🔒 로그아웃 상태: 안내 박스 보여주기
+            <div className="mb-8 border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl p-10 flex flex-col items-center justify-center h-64">
+                <p className="text-xl text-gray-500 font-bold mb-6 text-center leading-relaxed">
+                    수강한 과목이 없습니다.<br />
+                    대신 로그인해서 수강한 과목을 확인해보세요!
+                </p>
+                <button 
+                    onClick={() => navigate('/login')}
+                    className="px-6 py-2 bg-pink-500 text-white font-bold rounded-lg hover:bg-pink-600 transition-colors shadow-md"
+                >
+                    로그인 하러 가기
+                </button>
+            </div>
+        ) : loadingMyCourses ? (
           <div className="mb-8 border-2 border-pink-100 bg-pink-50 rounded-xl p-8 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
@@ -498,6 +539,7 @@ const Summary: React.FC = () => {
             </div>
           </div>
         ) : (
+          // 로그인 했지만 수강 과목이 없을 때
           <div className="mb-8 border-2 border-pink-100 bg-pink-50 rounded-xl p-8 text-center">
             <p className="text-gray-500">수강한 과목이 없습니다.</p>
           </div>
@@ -565,7 +607,7 @@ const Summary: React.FC = () => {
             <div className="w-32">
               <button
                 onClick={handleSearchClick}
-                className="w-full p-3 mt-2 bg-pink-500 text-white font-semibold rounded-lg hover:bg-pink-600 transition disabled:bg-gray-300"
+                className="w-full p-3 mt-2 bg-pink-50 text-white font-semibold rounded-lg hover:bg-pink-600 transition disabled:bg-gray-300"
                 disabled={loading}
               >
                 {loading ? '조회 중...' : '조회'}
@@ -682,22 +724,22 @@ const Summary: React.FC = () => {
                       </select>
                     </td>
                    <td className="px-6 py-4 whitespace-nowrap text-center">
-  <button
-    onClick={() => handleAddMyCourse(course)}
-    disabled={course.isAdded || addingCourse === course.id}
-    className={`px-4 py-1.5 rounded text-sm font-medium transition-all duration-200 ${
-      course.isAdded || addingCourse === course.id
-        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-        : 'bg-pink-400 text-white hover:bg-pink-500 shadow-sm hover:shadow'
-    }`}
-  >
-    {course.isAdded
-      ? '추가 완료'
-      : addingCourse === course.id
-      ? '추가중...'
-      : '추가'}
-  </button>
-</td>
+                    <button
+                        onClick={() => handleAddMyCourse(course)}
+                        disabled={course.isAdded || addingCourse === course.id}
+                        className={`px-4 py-1.5 rounded text-sm font-medium transition-all duration-200 ${
+                        course.isAdded || addingCourse === course.id
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-pink-400 text-white hover:bg-pink-500 shadow-sm hover:shadow'
+                        }`}
+                    >
+                        {course.isAdded
+                        ? '추가 완료'
+                        : addingCourse === course.id
+                        ? '추가중...'
+                        : '추가'}
+                    </button>
+                    </td>
 
                   </tr>
                 ))}
