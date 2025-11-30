@@ -10,12 +10,14 @@ interface ApiGraduationResponse {
   missingGeneral: number;
 }
 
+ 
 function TotalCredits() {
   const [data, setData] = useState<ApiGraduationResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    
     const fetchData = async () => {
       try {
         setLoading(true);

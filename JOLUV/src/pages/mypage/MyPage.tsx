@@ -1,7 +1,10 @@
+//myPage.tsx
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import './MyPage.css';
+import { useNavigate } from 'react-router-dom';
 
 // ----------------------------------------------------------------------
 // ⭐️ [설정] Axios 전역 설정 (CSRF 토큰)
@@ -38,6 +41,14 @@ interface ActivityItem {
 
 const MyPage: React.FC = () => {
   const { userId } = useAuth();
+    
+   /* useEffect(() => {
+    // userId가 없거나(로그인 안함) null이면 로그인 페이지로 강제 이동
+    if (!userId) {
+      alert("로그인이 필요한 페이지입니다.");
+      navigate('/login'); // 로그인 경로로 쫓아냄
+    }
+  }, [userId, navigate]);*/
 
   // ----------------------------------------------------------------------
   // 2. State 관리
@@ -101,7 +112,6 @@ const MyPage: React.FC = () => {
       try {
         const userRes = await axios.get('/api/auth/mypage', { withCredentials: true });
         const data = userRes.data;
-        
         let fetchedUser: UserInfo | null = null;
         let currentUserStudentId = 0;
 
@@ -284,8 +294,7 @@ const MyPage: React.FC = () => {
           // 따라서 백엔드 UserService에서 반드시 'null 체크'를 해야 데이터가 날아가지 않습니다.
       };
       
-      console.log("📤 [MyPage] 서버로 보내는 업데이트 페이로드:", updatePayload);
-      
+
       try {
         const response = await axios.post('/api/auth/mypage/update', updatePayload, {
             headers: { 'Content-Type': 'application/json' },
@@ -355,9 +364,9 @@ const MyPage: React.FC = () => {
 
       <div className="mypage__container box__left">
          <header className="mypage__header">
-            <div className="profile__img" />
+            <div className="profile__emoji">🎓</div>
             <div>
-                <h1 className="user__name">{user ? `${user.name} 님` : '...'}</h1>
+                <h1 className="user__name"> {user ? `${user.name} 님` : '...'}</h1>
                 {user?.studentId && (
                     <p className="user__info" style={{ marginBottom: '5px', fontWeight: 'bold' }}>
                         학번 : {user.studentId}
@@ -491,16 +500,31 @@ const MyPage: React.FC = () => {
                                         <h3 className="view-title">{item.title}</h3>
                                         <p className="view-detail">{item.detail}</p>
                                     </div>
-                                    <div className="view-actions">
-                                        <button onClick={() => handleEditClick(item)} className="icon-btn edit" title="수정">✏️</button>
-                                        <button onClick={() => handleDelete(item.id)} className="icon-btn delete" title="삭제">🗑️</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })
-            )}
+                                    <div className="view-actions flex gap-2">
+    {/* 수정 버튼 (펜 아이콘) */}
+    <button 
+        onClick={() => handleEditClick(item)} 
+        className="text-gray-400 hover:text-blue-500 transition-colors p-1" 
+        title="수정"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+        </svg>
+    </button>
+
+    {/* 삭제 버튼 (쓰레기통 아이콘) */}
+    <button 
+        onClick={() => handleDelete(item.id)} 
+        className="text-gray-400 hover:text-red-500 transition-colors p-1" 
+        title="삭제"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+        </svg>
+        </button>
+             </div>
+        </div>)}
+    </div>);}))}
           </div>
 
           <hr className="divider" />

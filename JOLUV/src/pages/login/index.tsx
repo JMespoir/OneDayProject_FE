@@ -36,18 +36,13 @@ const LoginPage: React.FC = () => {
         formData.append('password', password);
 
         try {
-            const response = await axios.post('/api/auth/login', formData, {
-                headers: { 
-                    'Content-Type': 'application/x-www-form-urlencoded' 
-                },
-                withCredentials: true,
+             const response = await axios.post('/api/auth/login', formData, {
+                 headers: { 
+                     'Content-Type': 'application/x-www-form-urlencoded' 
+                 },
+                 withCredentials: true,
             });
 
-            // 1. 응답 데이터가 HTML 문자열이면 -> 실패
-            if (typeof response.data === 'string' && response.data.includes('<html')) {
-                setErrorMessage("아이디 또는 비밀번호가 일치하지 않습니다."); // ✨ alert 대신 사용
-                return;
-            }
 
             // 2. 상태 코드 200 확인
             if (response.status === 200) {

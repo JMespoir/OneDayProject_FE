@@ -5,20 +5,25 @@ import SubjectCard from './components/SubjectCard';
 // 스타일은 Tailwind CSS 클래스를 사용하여 버튼을 꾸밉니다.
 import './index.css';
 
+// ----------------------------------------------------------------------
+// 1. 타입 정의
+// ----------------------------------------------------------------------
+
 type SortType = 'name' | 'grade' | 'credit';
 type SemesterLabel = '1학기' | '2학기' | '계절학기';
 type FilterCategory = '전체' | '전공' | '교양'; 
 
-interface Subject {
+// ⭐️ [중요] Subject 인터페이스 export (외부에서 참조 가능하도록)
+export interface Subject {
   id: number;
   name: string;
   credit: number;
   grade: string;        // 표시용 등급 (A+, B0 ...)
-  score: number;        // ⭐️ [추가] 정렬용 원본 점수 (4.3, 3.0 ...)
+  score: number;        // 정렬용 원본 점수 (4.3, 3.0 ...)
   category: string;
   needsRetake: boolean;
   year: number;
-  semester: SemesterLabel;
+  semester: SemesterLabel | string; // 목업 데이터 호환을 위해 string 허용
 }
 
 interface HistoryApiItem {
@@ -31,13 +36,21 @@ interface HistoryApiItem {
   semester: number;
 }
 
+// ⭐️ [추가] 부모로부터 받을 Props 정의
+interface BuiltinProps {
+  mockData?: Subject[]; 
+}
+
+// ----------------------------------------------------------------------
+// 2. 헬퍼 함수
+// ----------------------------------------------------------------------
+
 const toSemesterLabel = (sem: number): SemesterLabel => {
   if (sem === 1) return '1학기';
   if (sem === 2) return '2학기';
   return '계절학기';
 };
 
-// ⭐️ [추가] 점수를 등급으로 변환하는 함수
 const convertScoreToGrade = (score: number): string => {
   if (score >= 4.3) return 'A+';
   if (score >= 4.0) return 'A0';
@@ -53,17 +66,33 @@ const convertScoreToGrade = (score: number): string => {
   return 'F';
 };
 
-const Builtin: React.FC = () => {
+// ----------------------------------------------------------------------
+// 3. 컴포넌트 구현
+// ----------------------------------------------------------------------
+
+// ⭐️ [수정] mockData를 props로 받도록 변경
+const Builtin: React.FC<BuiltinProps> = ({ mockData }) => {
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('전체');
   
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortType, setSortType] = useState<SortType>('name');
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  
+  // ⭐️ [수정] 초기값: mockData가 있으면 그것을 사용
+  const [subjects, setSubjects] = useState<Subject[]>(mockData || []);
+  
+  // ⭐️ [수정] 로딩 상태: mockData가 있으면 로딩 안 함(false)
+  const [loading, setLoading] = useState<boolean>(!mockData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
+      // ⭐️ [추가] mockData가 있으면 API 호출 스킵
+      if (mockData) {
+        setSubjects(mockData);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -74,16 +103,16 @@ const Builtin: React.FC = () => {
 
         const mapped: Subject[] = res.data.map((item, idx) => {
           const point = item.received_grade;
-          const needsRetake = (point <= 2.7);
+          const needsRetake = (point <= 2.7); // 예: C+ 이하 재수강 필요 로직
           return {
             id: idx,
             name: item.lectureName,
             credit: item.credit,
-            grade: convertScoreToGrade(item.received_grade), // ⭐️ 변환 함수 적용
-            score: item.received_grade, // ⭐️ 정렬을 위해 원본 점수 저장
+            grade: convertScoreToGrade(item.received_grade),
+            score: item.received_grade,
             category: item.lecType,
             needsRetake,
-            year: item.grade,
+            year: item.grade, // API 응답의 grade가 학년(year)을 의미한다고 가정
             semester: toSemesterLabel(item.semester),
           };
         });
@@ -98,7 +127,11 @@ const Builtin: React.FC = () => {
     };
 
     fetchHistory();
-  }, []);
+  }, [mockData]); // ⭐️ mockData가 바뀌면 재실행
+
+  // ----------------------------------------------------------------------
+  // 4. 이벤트 핸들러 및 필터링
+  // ----------------------------------------------------------------------
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
@@ -110,7 +143,6 @@ const Builtin: React.FC = () => {
       if (sortType === 'name') {
         copied.sort((a, b) => a.name.localeCompare(b.name));
       } else if (sortType === 'grade') {
-        // ⭐️ [수정] 문자열(A+) 대신 숫자(score)로 정렬하여 정확도 보장
         copied.sort((a, b) => b.score - a.score); 
       } else if (sortType === 'credit') {
         copied.sort((a, b) => b.credit - a.credit);
