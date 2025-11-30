@@ -82,14 +82,14 @@ JOLUV  - 경북대학교 졸업 관리 플랫폼 "성공적인 졸업을 위한 
 
 ##  기술 스택
 
-| Category    | Technology   |  Description       |
-| ----------- | ------------ |  ----------------- |
-| Frontend    | React        |  컴포넌트 기반 프론트엔드 개발  |
-| Language    | TypeScript   |  정적 타입 기반 코드 안정성   |
-| Build Tool  | Vite         |  빠른 개발 환경 + HMR    |
-| Styling     | Tailwind CSS |  Utility-first CSS |
-| Routing     | React Router |  SPA 라우팅           |
-| HTTP Client | Axios        |  REST API 통신       |
+| Category    | Technology   
+| ----------- | ------------ 
+| Frontend    | React       
+| Language    | TypeScript   
+| Build Tool  | Vite         
+| Styling     | Tailwind CSS 
+| Routing     | React Router 
+| HTTP Client | Axios     
 
 ---
 
