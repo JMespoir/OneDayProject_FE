@@ -597,13 +597,20 @@ const Summary: React.FC = () => {
                 과목명 검색
               </label>
               <div className="relative">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  placeholder="과목명을 입력하세요"
-                  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
-                />
+               <input
+  type="text"
+  value={searchTerm}
+  onChange={e => setSearchTerm(e.target.value)}
+  onKeyDown={e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();      // 폼 submit 같은 기본 동작 막기
+      handleSearchClick();     // 조회 버튼 함수 호출
+    }
+  }}
+  placeholder="과목명을 입력하세요"
+  className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+/>
+
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                   🔍
                 </span>
@@ -613,7 +620,7 @@ const Summary: React.FC = () => {
             <div className="w-32">
               <button
                 onClick={handleSearchClick}
-                className="w-full p-3 mt-2 bg-pink-50 text-white font-semibold rounded-lg hover:bg-pink-600 transition disabled:bg-gray-300"
+               className="w-full p-3 mt-2 bg-pink-600 text-white font-semibold rounded-lg hover:bg-pink-400 transition :bg-pink-300"
                 disabled={loading}
               >
                 {loading ? '조회 중...' : '조회'}
