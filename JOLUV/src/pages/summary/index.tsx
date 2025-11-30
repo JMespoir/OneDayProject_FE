@@ -1,13 +1,7 @@
-// Summary Page - 학점 관리 페이지
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext'; // 1. 로그인 확인용
-import { useNavigate } from 'react-router-dom';       // 2. 페이지 이동용
-
-// ----------------------------------------------------------------------
-// 1. 타입 및 헬퍼 함수 정의
-// ----------------------------------------------------------------------
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Course {
   id: number;
@@ -15,16 +9,37 @@ interface Course {
   name: string;
   credits: number;
   category: string;
-  grade: number;      // 학년
+  grade: number;
   semester: number;
   isAdded?: boolean;
   score: string;      // A+, A0 ...
-  isUpdated?: boolean; // 수정 완료 여부
+  isUpdated?: boolean;
 }
 
-const ITEMS_PER_PAGE = 10;   // 조회 결과용
-const MY_ITEMS_PER_PAGE = 5; // 내 수강 과목용
+const ITEMS_PER_PAGE = 10;
+const MY_ITEMS_PER_PAGE = 5;
 
+// 백엔드: 4.3 만점 숫자 → 문자열 변환
+const getScoreLabel = (value: number | null | undefined): string => {
+  if (value == null) return 'A+';
+
+  if (value >= 4.3) return 'A+';
+  if (value >= 4.0) return 'A0';
+  if (value >= 3.7) return 'A-';
+  if (value >= 3.3) return 'B+';
+  if (value >= 3.0) return 'B0';
+  if (value >= 2.7) return 'B-';
+  if (value >= 2.3) return 'C+';
+  if (value >= 2.0) return 'C0';
+  if (value >= 1.7) return 'C-';
+  if (value >= 1.3) return 'D+';
+  if (value >= 1.0) return 'D0';
+  if (value >= 0.7) return 'D-';
+  if (value > 0)    return 'F';
+  return 'F';
+};
+
+// 문자열 → 숫자 (이미 있던 함수는 유지)
 const getScoreValue = (score: string): number => {
   const scoreMap: { [key: string]: number } = {
     'A+': 4.3, 'A0': 4.0,
@@ -54,64 +69,65 @@ const SemesterNumberChange = (sem: number) => {
   }
 };
 
-// ----------------------------------------------------------------------
-// 2. 컴포넌트 구현
-// ----------------------------------------------------------------------
-
 const Summary: React.FC = () => {
-  const { userId } = useAuth(); // 3. 로그인 상태 가져오기
-  const navigate = useNavigate(); // 4. 이동 함수
+  const { userId } = useAuth();
+  const navigate = useNavigate();
 
   const [myCourses, setMyCourses] = useState<Course[]>([]);
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [selectedSemester, setSelectedSemester] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Course[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);        // 조회 결과용
-  const [myPage, setMyPage] = useState(1);                  // 내 수강 과목용
-  const [loading, setLoading] = useState(false);            // 조회 버튼 로딩
-  const [loadingMyCourses, setLoadingMyCourses] = useState(true); // 내 수강 과목 초기 로딩
-  const [updatingCourse, setUpdatingCourse] = useState<string | null>(null); // 수정중인 과목 lecid
-  const [deletingCourse, setDeletingCourse] = useState<number | null>(null); // 삭제중인 과목 id
-  const [addingCourse, setAddingCourse] = useState<number | null>(null); // 추가중인 과목 id
+  const [currentPage, setCurrentPage] = useState(1);
+  const [myPage, setMyPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [loadingMyCourses, setLoadingMyCourses] = useState(true);
+  const [updatingCourse, setUpdatingCourse] = useState<string | null>(null);
+  const [deletingCourse, setDeletingCourse] = useState<number | null>(null);
+  const [addingCourse, setAddingCourse] = useState<number | null>(null);
+
+  // 서버에서 내 수강 과목 다시 가져오는 공통 함수
+  const fetchMyCoursesFromServer = async () => {
+    try {
+      const myCoursesRes = await axios.get('/api/course/history');
+      const myFetchedCourses: Course[] = myCoursesRes.data.map(
+        (course: any, idx: number) => ({
+          id: idx,
+          lecid: course.lecid || course.lecId,
+          name: course.lectureName || course.name,
+          credits: course.credit || course.credits,
+          category: course.lecType || course.category,
+          grade: course.grade || 0,
+          semester: course.semester || 0,
+          // 백엔드가 4.3 점수(예: 4.3, 3.7)를 주면 그걸 문자열로 변환
+          score: getScoreLabel(course.received_grade ?? course.score),
+          isAdded: true,
+          isUpdated: false,
+        })
+      );
+      setMyCourses(myFetchedCourses);
+    } catch (error) {
+      console.error('내 수강 과목 불러오기 실패:', error);
+    }
+  };
 
   // 마운트 시 내 수강 과목 1번만 불러오기
   useEffect(() => {
-    // ⭐️ 로그인 안 되어 있으면 로딩 끄고 API 호출 안 함
     if (!userId) {
-        setLoadingMyCourses(false);
-        return;
+      setLoadingMyCourses(false);
+      return;
     }
 
-    const fetchMyCourses = async () => {
-      try {
-        setLoadingMyCourses(true);
-        const myCoursesRes = await axios.get('/api/course/history');
-        const myFetchedCourses: Course[] = myCoursesRes.data.map(
-          (course: any, idx: number) => ({
-            id: idx,
-            lecid: course.lecid || course.lecId,
-            name: course.lectureName || course.name,
-            credits: course.credit || course.credits,
-            category: course.lecType || course.category,
-            grade: course.grade || 0,
-            semester: course.semester || 0,
-            score: course.received_grade || 'A+',
-            isAdded: true,
-            isUpdated: false,
-          })
-        );
-        setMyCourses(myFetchedCourses);
-      } catch (error) {
-        console.error('내 수강 과목 불러오기 실패:', error);
-      } finally {
-        setLoadingMyCourses(false);
-      }
+    const init = async () => {
+      setLoadingMyCourses(true);
+      await fetchMyCoursesFromServer();
+      setLoadingMyCourses(false);
     };
-    fetchMyCourses();
-  }, [userId]); // userId가 변경될 때 체크
 
-  // 내 수강 과목이 바뀌면 검색 결과의 isAdded 동기화
+    init();
+  }, [userId]);
+
+  // 내 수강 과목 변경 시 검색 결과의 isAdded 동기화
   useEffect(() => {
     setSearchResults(prevResults =>
       prevResults.map(searchItem => {
@@ -121,14 +137,12 @@ const Summary: React.FC = () => {
     );
   }, [myCourses]);
 
-  // 학년 변경
   const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newGrade = e.target.value;
     setSelectedGrade(newGrade);
     if (newGrade === 'all') setSelectedSemester('all');
   };
 
-  // 조회 버튼 클릭 시 호출
   const handleSearchClick = async () => {
     const hasSearchTerm = searchTerm.trim().length > 0;
     const hasGrade = selectedGrade !== 'all';
@@ -163,18 +177,19 @@ const Summary: React.FC = () => {
 
       const fetchedSearchResults: Course[] = (response.data || []).map(
         (course: any, idx: number) => {
-          const alreadyExists = myCourses.some(
-            my => my.lecid === (course.lecId || course.lecid)
-          );
+          const lecId = course.lecId || course.lecid;
+          const existing = myCourses.find(my => my.lecid === lecId);
+          const alreadyExists = !!existing;
+
           return {
             id: idx,
-            lecid: course.lecId || course.lecid,
+            lecid: lecId,
             name: course.lectureName || course.name,
             credits: course.credit || course.credits,
-            category: course.lectureType || course.lecType || '전공선택',
-            grade: hasGrade ? Number(selectedGrade) : (course.grade || 0),
-            semester: hasSemester ? Number(selectedSemester) : (course.semester || 0),
-            score: 'A+',
+            category: existing?.category || course.lectureType || course.lecType || '전공선택',
+            grade: hasGrade ? Number(selectedGrade) : (course.grade || existing?.grade || 0),
+            semester: hasSemester ? Number(selectedSemester) : (course.semester || existing?.semester || 0),
+            score: existing?.score || 'A+',
             isAdded: alreadyExists,
           };
         }
@@ -191,16 +206,14 @@ const Summary: React.FC = () => {
     }
   };
 
+  // 수정 버튼 → 서버 업데이트 + history 재조회
   const updateCourseInfo = async (lecId: string, lecType: string, score: string) => {
     const payload = { lecId, lecType, receivedGrade: getScoreValue(score) };
+
     try {
       setUpdatingCourse(lecId);
       await axios.put('/api/course/update', payload);
-      setMyCourses(prev =>
-        prev.map(c =>
-          c.lecid === lecId ? { ...c, isUpdated: true } : c
-        )
-      );
+      await fetchMyCoursesFromServer(); // 서버 기준 최신 데이터로 다시 채움
     } catch (error) {
       console.error('정보 수정 실패:', error);
     } finally {
@@ -225,12 +238,11 @@ const Summary: React.FC = () => {
   };
 
   const handleSearchCategoryChange = (id: number, newCategory: string) => {
-    setSearchResults(prev => {
-      const next = prev.map(c =>
+    setSearchResults(prev =>
+      prev.map(c =>
         c.id === id ? { ...c, category: newCategory } : c
-      );
-      return next;
-    });
+      )
+    );
   };
 
   const handleSearchScoreChange = (id: number, newScore: string) => {
@@ -239,42 +251,37 @@ const Summary: React.FC = () => {
     );
   };
 
- const handleAddMyCourse = async (gwamok: Course) => {
-  // ⭐️ 로그인 안 되어 있으면 막기
-  if (!userId) {
+  const handleAddMyCourse = async (gwamok: Course) => {
+    if (!userId) {
       if (window.confirm('로그인이 필요한 기능입니다. 로그인하시겠습니까?')) {
-          navigate('/login');
+        navigate('/login');
       }
       return;
-  }
+    }
 
-  const targetCourse = searchResults.find(c => c.id === gwamok.id);
-  if (!targetCourse) return;
+    const targetCourse = searchResults.find(c => c.id === gwamok.id);
+    if (!targetCourse) return;
 
-  const payload = {
-    lecId: targetCourse.lecid,
-    grade: Number(targetCourse.grade),
-    semester: Number(targetCourse.semester),
-    lecType: targetCourse.category,
-    credit: Number(targetCourse.credits),
-    received_grade: getScoreValue(targetCourse.score),
+    const payload = {
+      lecId: targetCourse.lecid,
+      grade: Number(targetCourse.grade),
+      semester: Number(targetCourse.semester),
+      lecType: targetCourse.category,
+      credit: Number(targetCourse.credits),
+      received_grade: getScoreValue(targetCourse.score),
+    };
+
+    try {
+      setAddingCourse(targetCourse.id);
+      await axios.post('/api/course/register', payload);
+      await fetchMyCoursesFromServer(); // 추가 후에도 서버 기준으로 재조회
+    } catch (error) {
+      console.error('추가 실패:', error);
+      alert('오류가 발생했습니다.');
+    } finally {
+      setAddingCourse(null);
+    }
   };
-
-  try {
-    setAddingCourse(targetCourse.id);
-    await axios.post('/api/course/register', payload);
-    const newCourse = { ...targetCourse, isAdded: true, isUpdated: false };
-    setMyCourses(prev => {
-      if (prev.find(c => c.lecid === newCourse.lecid)) return prev;
-      return [...prev, newCourse];
-    });
-  } catch (error) {
-    console.error('추가 실패:', error);
-    alert('오류가 발생했습니다.');
-  } finally {
-    setAddingCourse(null);
-  }
-};
 
   const handleRemoveMyCourse = async (id: number) => {
     const target = myCourses.find(c => c.id === id);
@@ -283,7 +290,7 @@ const Summary: React.FC = () => {
     try {
       setDeletingCourse(id);
       await axios.delete(`/api/course/${target.lecid}`);
-      setMyCourses(prev => prev.filter(course => course.id !== id));
+      await fetchMyCoursesFromServer();
     } catch (error) {
       console.error('삭제 실패:', error);
       alert('오류가 발생했습니다.');
@@ -292,14 +299,12 @@ const Summary: React.FC = () => {
     }
   };
 
-  // 조회 결과 페이지 계산
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = searchResults.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(searchResults.length / ITEMS_PER_PAGE);
   const emptyRows = ITEMS_PER_PAGE - currentItems.length;
 
-  // 내 수강 과목 페이지 계산 (5개씩)
   const myIndexOfLastItem = myPage * MY_ITEMS_PER_PAGE;
   const myIndexOfFirstItem = myIndexOfLastItem - MY_ITEMS_PER_PAGE;
   const myCurrentItems = myCourses.slice(myIndexOfFirstItem, myIndexOfLastItem);
