@@ -1,5 +1,3 @@
-//myPage.tsx
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -40,15 +38,8 @@ interface ActivityItem {
 }
 
 const MyPage: React.FC = () => {
-  const { userId } = useAuth();
-    
-   /* useEffect(() => {
-    // userId가 없거나(로그인 안함) null이면 로그인 페이지로 강제 이동
-    if (!userId) {
-      alert("로그인이 필요한 페이지입니다.");
-      navigate('/login'); // 로그인 경로로 쫓아냄
-    }
-  }, [userId, navigate]);*/
+  const { userId } = useAuth(); // 로그인 상태 가져오기
+  const navigate = useNavigate();
 
   // ----------------------------------------------------------------------
   // 2. State 관리
@@ -108,6 +99,9 @@ const MyPage: React.FC = () => {
   // 4. 초기 데이터 조회 (useEffect)
   // ----------------------------------------------------------------------
   useEffect(() => {
+    // ⭐️ 로그인 안 되어 있으면 데이터 요청 자체를 안 함
+    if (!userId) return;
+
     const fetchData = async () => {
       try {
         const userRes = await axios.get('/api/auth/mypage', { withCredentials: true });
@@ -119,23 +113,19 @@ const MyPage: React.FC = () => {
         if (data && typeof data === 'object') {
             currentUserStudentId = parseInt(data.studentId || '0');
 
-            // JSON 필드에서 학점 가져오기 (키값: totalgpa, majorgpa 우선 사용)
             const rawGpa = data.totalgpa ?? data.gpa; 
             const rawGpaMajor = data.majorgpa ?? data.gpa_major;
             
             const jsonGpa = parseFloat(String(rawGpa)) || 0.0;
             const jsonGpaMajor = parseFloat(String(rawGpaMajor)) || 0.0;
             
-            // ⭐️ [조회 수정] engscore 키에서 값 가져오기
             const rawEngScore = data.engscore ?? data.eng_score; 
 
-            // 데이터 매핑
             fetchedUser = {
                 name: data.name || '이름 없음',
                 user_id: data.userId || userId || '',
                 studentId: data.studentId || '',
                 major: data.major || '컴퓨터학부',
-                // 조회 시 specific_major 키 사용
                 track: data.specific_major || data.track || '다중전공트랙', 
                 eng_score: String(rawEngScore || "0"),
                 totalGpa: jsonGpa,       
@@ -173,7 +163,7 @@ const MyPage: React.FC = () => {
   // ----------------------------------------------------------------------
   // 5. 이벤트 핸들러
   // ----------------------------------------------------------------------
-
+  // ... (기존 핸들러 함수들 - 변경 없음)
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -265,37 +255,21 @@ const MyPage: React.FC = () => {
   const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => setEngScoreInput(e.target.value);
   const handleInternshipChange = (e: React.ChangeEvent<HTMLInputElement>) => setInternshipChecked(e.target.checked);
   
-// ⭐️ [수정된 버전] handleUpdateInfo
   const handleUpdateInfo = async () => {
       if (!user) return;
       
-      // 1. 영어 성적 변환 (String -> Number or Null)
-      // 값이 없거나 공백이면 0 (또는 null)으로 처리
       const finalEngScore = engScoreInput && engScoreInput.trim() !== '' 
                             ? parseInt(engScoreInput, 10) 
                             : 0; 
 
-      // 2. DTO 생성
       const updatePayload = {
-          // 트랙
           specific_major: selectedTrack, 
-          
-          // 전공 (수정되지 않더라도 기존 값 유지 위해 전송)
           major: user.major,
-          
-          // 영어 성적 (반드시 숫자로 변환해서 전송)
           eng_score: finalEngScore,
-          engScore: finalEngScore, // 혹시 모를 카멜케이스 대비
-          
-          // 인턴십 (Boolean)
+          engScore: finalEngScore, 
           internship: internshipChecked
-          
-          // ⚠️ 주의: 여기에 포함되지 않은 필드(예: 학점, 이름 등)는 
-          // 백엔드 DTO에서 null이 됩니다.
-          // 따라서 백엔드 UserService에서 반드시 'null 체크'를 해야 데이터가 날아가지 않습니다.
       };
       
-
       try {
         const response = await axios.post('/api/auth/mypage/update', updatePayload, {
             headers: { 'Content-Type': 'application/json' },
@@ -304,18 +278,16 @@ const MyPage: React.FC = () => {
 
         if (response.status === 200) {
             showToastMessage('정보가 저장되었습니다! 🎉');
-            // 화면 상태 업데이트
             setUser({ 
                 ...user, 
                 track: selectedTrack, 
-                eng_score: String(finalEngScore), // 화면엔 다시 문자로 저장
+                eng_score: String(finalEngScore), 
                 internship: internshipChecked 
             });
         }
       } catch(e: any) { 
           console.error("정보 저장 실패:", e); 
           if (e.response) {
-               // 에러 처리 로직 유지
                if (e.response.status === 401) showToastMessage('세션이 만료되었습니다.');
                else if (e.response.status === 400) showToastMessage('입력값이 올바르지 않습니다 (숫자 확인).');
                else showToastMessage('저장 실패 (서버 오류)');
@@ -354,6 +326,39 @@ const MyPage: React.FC = () => {
     );
   };
 
+  // ⭐️⭐️⭐️ [핵심] 로그인 여부 체크 및 안내 화면 리턴 ⭐️⭐️⭐️
+  // 이 코드가 실제 마이페이지 UI(return)보다 위에 있어야 합니다.
+  if (!userId) {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-10 text-center border border-gray-100">
+                {/* 자물쇠 아이콘 */}
+                <div className="mx-auto w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mb-6 animate-bounce-slow">
+                    <span className="text-4xl">🔒</span>
+                </div>
+                
+                <h2 className="text-2xl font-extrabold text-gray-800 mb-3">
+                    로그인이 필요한 서비스입니다
+                </h2>
+                <p className="text-gray-500 mb-8 leading-relaxed">
+                    마이페이지에서 나의 학점과<br/>
+                    다양한 활동 내역을 관리해보세요!
+                </p>
+                
+                <button
+                    onClick={() => navigate('/login')}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                    로그인 하러 가기
+                </button>
+            </div>
+        </div>
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // 6. 메인 렌더링 (로그인 된 사용자만 볼 수 있음)
+  // ----------------------------------------------------------------------
   return (
     <div className="mypage__layout">
       {toast.show && (
@@ -377,6 +382,7 @@ const MyPage: React.FC = () => {
             </div>
          </header>
 
+         {/* ... 나머지 마이페이지 UI 코드 ... */}
          <section className="mypage__track-section">
              <h2>세부 트랙 정보</h2>
              <div className="score__content">
@@ -502,30 +508,34 @@ const MyPage: React.FC = () => {
                                         <p className="view-detail">{item.detail}</p>
                                     </div>
                                     <div className="view-actions flex gap-2">
-    {/* 수정 버튼 (펜 아이콘) */}
-    <button 
-        onClick={() => handleEditClick(item)} 
-        className="text-gray-400 hover:text-blue-500 transition-colors p-1" 
-        title="수정"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-        </svg>
-    </button>
+                                        {/* 수정 버튼 */}
+                                        <button 
+                                            onClick={() => handleEditClick(item)} 
+                                            className="text-gray-400 hover:text-blue-500 transition-colors p-1" 
+                                            title="수정"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                            </svg>
+                                        </button>
 
-    {/* 삭제 버튼 (쓰레기통 아이콘) */}
-    <button 
-        onClick={() => handleDelete(item.id)} 
-        className="text-gray-400 hover:text-red-500 transition-colors p-1" 
-        title="삭제"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-        </svg>
-        </button>
-             </div>
-        </div>)}
-    </div>);}))}
+                                        {/* 삭제 버튼 */}
+                                        <button 
+                                            onClick={() => handleDelete(item.id)} 
+                                            className="text-gray-400 hover:text-red-500 transition-colors p-1" 
+                                            title="삭제"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })
+            )}
           </div>
 
           <hr className="divider" />

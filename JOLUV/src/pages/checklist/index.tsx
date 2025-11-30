@@ -138,7 +138,6 @@ const ChecklistPage: React.FC = () => {
             {!userId && (
                 <div className="flex justify-between items-center bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6 shadow-sm">
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl">👀</span>
                         <div>
                             <p className="text-gray-800 font-bold text-sm sm:text-base">
                                 현재는 예시 데이터가 표시되고 있습니다.
