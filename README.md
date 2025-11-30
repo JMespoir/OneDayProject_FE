@@ -99,33 +99,6 @@ JOLUV  - 경북대학교 졸업 관리 플랫폼 "성공적인 졸업을 위한 
 
 ---
 
-##  주요 구현 로직
-
-### ✔ Authentication Flow
-
-* 앱 실행 시 localStorage 기반 로그인 상태 자동 복구
-* `login(id)` → 상태 업데이트 및 스토리지 저장
-* `logout()` → userId·accessToken 삭제 및 상태 초기화
-
----
-
-### ✔ Protected Routes
-
-```tsx
-<Route 
-  path="mypage" 
-  element={
-    <ProtectedRoute>
-      <MyPage />
-    </ProtectedRoute>
-  }
-/>
-```
-
-로그인하지 않은 경우 자동으로 로그인 페이지로 리다이렉트됩니다.
-
----
-
 ## Frontend Developers
 
 ### **장시온 (Frontend Developer)**
